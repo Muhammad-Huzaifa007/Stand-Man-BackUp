@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Mail;
 
 class Api2Controller extends Controller
 {
-    // //////////////////////////////////////    SIgn Up Api //////////////////////////////////////////////////
+    // //////////////////////////////////////    SIgn Up Api ///////////////////////////////////
     public function signup_customers(Request $request)
     {
         // Validation
@@ -89,7 +89,7 @@ class Api2Controller extends Controller
         return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
     }
 
-    // //////////////////////////////////////  Login Api ///////////////////////////////////////////////////// 
+    // //////////////////////////////////////  Customer Login Api //////////////////////////////
     public function login_customers(Request $request){
         // Custom Validation
         if(empty($request->email) || empty($request->password)){
@@ -117,7 +117,7 @@ class Api2Controller extends Controller
     }
     
 }
-// //////////////////////////////////////  Forgrt Password Api /////////////////////////////////////////////////
+// //////////////////////////////////////  Forget Password Api /////////////////////////////
 public function forget_password(Request $request){
     // Storing the given email in $email variable
     $email = $request->input('email');
@@ -158,7 +158,7 @@ private function sendOtpEmail($email, $otp)
     });
 }  
 
-// //////////////////////////////////////  Update Password Api /////////////////////////////////////////////////
+// //////////////////////////////////////  Update Password Api ///////////////////////////////////////
 public function reset_password(Request $request){
     $email = $request->input('email');
     $newpassword = $request->input('password');
@@ -186,7 +186,7 @@ public function reset_password(Request $request){
         'message' => 'Password Updated Successfully'
     ], 200);
 }
- // //////////////////////////////////////    Create Jobs Api //////////////////////////////////////////////////
+ // //////////////////////////////////////    Create Jobs Api /////////////////////////////////////////
  public function create_jobs(Request $request)
  {
      // Validation
@@ -264,7 +264,7 @@ public function reset_password(Request $request){
         return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
     }
     
-    // //////////////////////////////////////    Show All Jobs  Api //////////////////////////////////////////////////
+    // //////////////////////////////////////    Show All Jobs  Api /////////////////////////////////
     public function show_jobs(){
         $jobs = DB::table('huzaifa_create_jobs')->get();
         return response()->json([
@@ -272,7 +272,7 @@ public function reset_password(Request $request){
             'jobs' => $jobs
         ], 200);
     }
-    // //////////////////////////////////////    Accepting Jobs Api //////////////////////////////////////////////////
+    // //////////////////////////////////////    Accepting Jobs Api //////////////////////////////
     public function accepted_jobs(Request $request)
     {
         // Validate the incoming request
@@ -280,17 +280,17 @@ public function reset_password(Request $request){
             'employee_id' => 'required|integer',
             'job_id' => 'required|integer',
         ]);
-    
+        
         // Retrieve the job details from the huzaifa_create_jobs table
         $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
-    
+        
         if (!$job) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Job not found'
             ], 400);
         }
-    
+        
         // Insert the job into the huzaifa_accepted_jobs table with employee_id
         DB::table('huzaifa_accepted_jobs')->insert([
             'job_id' => $job->id,
@@ -302,9 +302,9 @@ public function reset_password(Request $request){
             'end_time' => $job->end_time,
             'special_instructions' => $job->special_instructions,
             'location' => $job->location,
-
+            
         ]);
-    
+        
         // Return a success message and the accepted job details
         return response()->json([
             'status' => 'success',
@@ -312,7 +312,52 @@ public function reset_password(Request $request){
             'accepted_job' => $job
         ], 200);
     }
-    // //////////////////////////////////  Displaying Accepted Jobs by Employee Id Api ///////////////////////////
+    // //////////////////////////////////////  Edit Accepted Jobs Api //////////////////////////////
+    public function update_accepted_jobs(Request $request){
+        $request->validate([
+            'job_id' => 'required|integer',
+            'image' => 'required|string',
+            'name' => 'required|string',
+            'job_date' => 'required|string',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'special_instructions' => 'required|string',
+            'location' => 'required|string',
+        ]);
+        // Finding the Jobs in huzaifa_accepted_jobs table by job_id
+        $job = DB::table('huzaifa_accepted_jobs')->where('job_id', $request->job_id)->first();
+        
+        if(!$job){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job not found, Job Id is Incorrect',
+            ], 400);
+        }
+
+        // Update the fields in huzaifa_acepted_jobs table
+        DB::table('huzaifa_accepted_jobs')
+        ->where('job_id', $request->job_id)
+        ->update([
+            'image' => $request->input('image'),
+            'name' => $request->input('name'),
+            'job_date' => $request->input('job_date'),
+            'start_time' => $request->input('start_time'),
+            'end_time' => $request->input('end_time'),
+            'special_instructions' => $request->input('special_instructions'),
+            'location' => $request->input('location'),
+        ]);
+
+        // Fetched the Updated Job details
+        $updatedjobs = DB::table('huzaifa_accepted_jobs')->where('job_id', $request->job_id)->first();
+
+        return response()->json([
+            'status' => 'Success',
+            'message' => 'Job updated Successfully!',
+            'Updated Job' => $updatedjobs
+        ], 200);
+    }
+
+    // //////////////////////////////  Displaying Accepted Jobs by Employee Id Api ///////////////////
     public function show_accepted_jobs(Request $request)
     {
         // Validation
@@ -346,7 +391,7 @@ public function reset_password(Request $request){
     }
     
 
-    // //////////////////////////////////////    Show Jobs by Id Api ///////////////////////////////////////////
+    // //////////////////////////////////////    Show Jobs by Id Api ////////////////////////////////
     public function show_jobsbyId(Request $request)
     {
     // Validation
@@ -378,5 +423,114 @@ public function reset_password(Request $request){
         ], 400);
     }
     }
+// ///////////////////////////  Employee Sign Up Api ///////////////////////////////////////////
+public function signup_employee(Request $request)
+{
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'full_name' => 'required|string',
+        'email' => 'required|email',
+        'password' => 'required|string',
+        'profile' => 'required|string', // Base64 validation for profile image
+        'id_image' => 'required|string', // Base64 validation for ID image
+        'form_image' => 'required|string', // Base64 validation for form image
+        'phone' => 'required|string'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
+    }
+
+    // Check if email already exists
+    $emailExists = DB::table('huzaifa_employees')->where('email', $request->email)->exists();
+
+    if ($emailExists) {
+        return response()->json(['message' => 'Email already exists'], 409); // 409 Conflict
+    }
+
+    // Handling profile image
+    $profileFilename = $this->decodeProfileImage($request->input('profile'));
+    if (!$profileFilename) {
+        return response()->json(['message' => 'Invalid profile image format'], 400);
+    }
+
+    // Handling ID image
+    $idImageFilename = $this->decodeIdImage($request->input('id_image'));
+    if (!$idImageFilename) {
+        return response()->json(['message' => 'Invalid ID image format'], 400);
+    }
+
+    // Handling form image
+    $formImageFilename = $this->decodeFormImage($request->input('form_image'));
+    if (!$formImageFilename) {
+        return response()->json(['message' => 'Invalid form image format'], 400);
+    }
+
+    // Insert data into the database
+    $employee = DB::table('huzaifa_employees')->insert([
+        'full_name' => $request->full_name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'phone' => $request->phone,
+        'profile' => $profileFilename, // Store profile image filename
+        'id_image' => $idImageFilename, // Store ID image filename
+        'form_image' => $formImageFilename // Store form image filename
+    ]);
+
+    // Return the response
+    if ($employee) {
+        return response()->json([
+            'status' => 'Succeess',
+            'message' => 'Employee Created Successfully!', 
+    ], 200);
+    } else {
+        return response()->json([
+            'status' => 'Error',
+            'message' => 'Employee Could not be Created ', 
+    ], 400);
+    }
+}
+
+// Function to decode base64 profile image and save it
+private function decodeProfileImage($base64String)
+{
+    return $this->saveBase64Image($base64String, 'profile_image');
+}
+
+// Function to decode base64 ID image and save it
+private function decodeIdImage($base64String)
+{
+    return $this->saveBase64Image($base64String, 'id_image');
+}
+
+// Function to decode base64 form image and save it
+private function decodeFormImage($base64String)
+{
+    return $this->saveBase64Image($base64String, 'form_image');
+}
+
+// General function to save base64 image data
+private function saveBase64Image($base64String, $prefix)
+{
+    $base64Data = $this->extractBase64empData($base64String);
+
+    if (!$base64Data) {
+        return false;
+    }
+
+    // Generate a unique filename
+    $filename = $prefix . '_' . time() . '.png';
+
+    // Save the image
+    Storage::disk('public')->put($filename, base64_decode($base64Data));
+
+    return $filename;
+}
+
+// Function to extract base64 image data
+private function extractBase64empData($base64String)
+{
+    return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
+}
 
 }
