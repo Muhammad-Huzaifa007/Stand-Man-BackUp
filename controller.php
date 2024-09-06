@@ -57,9 +57,15 @@ class Api2Controller extends Controller
         
         // Return the response
         if ($user) {
-            return response()->json(['message' => 'User Created Successfully!', 'status' => 'Request Succeeded'], 201);
+            return response()->json([
+                'status' => 'Succeess',
+                'message' => 'User Created Successfully!',
+            ], 200);
         } else {
-            return response()->json(['message' => 'User could not be created', 'status' => 'Request Failed'], 500);
+            return response()->json([
+            'message' => 'User could not be created',
+             'status' => 'Error'
+            ], 400);
         }
     }
     
@@ -118,45 +124,52 @@ class Api2Controller extends Controller
     
 }
 // //////////////////////////////////////  Forget Password Api /////////////////////////////
-public function forget_password(Request $request){
-    // Storing the given email in $email variable
-    $email = $request->input('email');
+public function forget_password_employee(Request $request)
+    {
+        // Storing the given email in $email variable
+        $email = $request->input('email');
 
-    // Checking If the user exists
-    $user = DB::table('huzaifa_users')->where('email', $email)->first();
-    
-    if(!$user){
+        // Checking if the employee exists in the huzaifa_employees table
+        $employee = DB::table('huzaifa_employees')->where('email', $email)->first();
+
+        if (!$employee) {
+            return response()->json([
+                'status' => 'Error',
+                'message' => 'Employee does not exist'
+            ], 404);
+        }
+
+        // Generating a 4-digit random number as OTP
+        $otp = rand(1000, 9999);
+
+        // Storing or updating the OTP in huzaifa_employees_otp table
+        DB::table('huzaifa_employees_otp')->updateOrInsert(
+            ['employee_email' => $email],
+            ['otp' => $otp]
+        );
+
+        // Sending OTP to employee's email
+        $this->dispatchOtpEmail($email, $otp);
+
         return response()->json([
-            'status' => 'Error',
-            'message' => 'User does not exists'
-        ], 404);
+            'status' => 'Success',
+            'message' => 'OTP has been sent to your Email',
+            'OTP' => $otp,
+        ]);
     }
 
-    // Generating a 4-digit random number as OTP
-    $otp = rand(1000, 9999);
-    DB::table('huzaifa_users_otp')->updateOrInsert(
-        ['user_email' => $email],
-        ['otp' => $otp]
-    );
+    // Function to send OTP email
+    private function dispatchOtpEmail($email, $otp)
+    {
+        $subject = "Your Password Reset OTP";
+        $message = "Your OTP for resetting your password is: $otp";
 
-    // Sending OTP to User's email
-    $this->sendOtpEmail($email, $otp);
-    return response()->json([
-        'status' => 'Success',
-        'message' => 'OTP has been sent to your Email'
-    ]);
-}
-
-private function sendOtpEmail($email, $otp)
-{
-    $subject = "Your Password Reset OTP";
-    $message = "Your OTP for resetting your password is: $otp";
-
-    Mail::raw($message, function ($mail) use ($email, $subject) {
-        $mail->to($email)
-            ->subject($subject);
-    });
-}  
+        // Sending the OTP email using Laravel's Mail facade
+        Mail::raw($message, function ($mail) use ($email, $subject) {
+            $mail->to($email)
+                ->subject($subject);
+        });
+    }
 
 // //////////////////////////////////////  Update Password Api ///////////////////////////////////////
 public function reset_password(Request $request){
@@ -357,7 +370,7 @@ public function reset_password(Request $request){
         ], 200);
     }
 
-    // //////////////////////////////  Displaying Accepted Jobs by Employee Id Api ///////////////////
+    // /////////////////////////  Displaying Accepted Jobs by Employee Id Api ///////////////////
     public function show_accepted_jobs(Request $request)
     {
         // Validation
@@ -390,7 +403,6 @@ public function reset_password(Request $request){
         }
     }
     
-
     // //////////////////////////////////////    Show Jobs by Id Api ////////////////////////////////
     public function show_jobsbyId(Request $request)
     {
@@ -423,6 +435,30 @@ public function reset_password(Request $request){
         ], 400);
     }
     }
+// ///////////////////////////  Delete Job Api ///////////////////////////////////////////
+    public function delete_job(Request $request){
+        $request->validate([
+            'job_id' => 'required|integer'
+        ]);
+
+    // Finding the Job in huzaifa_create_jobs table by it's Id
+    $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
+
+    if(!$job){
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Job Id not found',
+        ],400);
+    }
+    DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->delete();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Job deleted!',
+    ],200);
+
+    }
+
 // ///////////////////////////  Employee Sign Up Api ///////////////////////////////////////////
 public function signup_employee(Request $request)
 {
@@ -434,20 +470,21 @@ public function signup_employee(Request $request)
         'profile' => 'required|string', // Base64 validation for profile image
         'id_image' => 'required|string', // Base64 validation for ID image
         'form_image' => 'required|string', // Base64 validation for form image
-        'phone' => 'required|string'
+        'phone' => 'required|string',
+        'user_type' => 'required|string'
     ]);
-
+    
     if ($validator->fails()) {
         return response()->json(['errors' => $validator->errors()], 400);
     }
-
+    
     // Check if email already exists
     $emailExists = DB::table('huzaifa_employees')->where('email', $request->email)->exists();
-
+    
     if ($emailExists) {
         return response()->json(['message' => 'Email already exists'], 409); // 409 Conflict
     }
-
+    
     // Handling profile image
     $profileFilename = $this->decodeProfileImage($request->input('profile'));
     if (!$profileFilename) {
@@ -459,13 +496,13 @@ public function signup_employee(Request $request)
     if (!$idImageFilename) {
         return response()->json(['message' => 'Invalid ID image format'], 400);
     }
-
+    
     // Handling form image
     $formImageFilename = $this->decodeFormImage($request->input('form_image'));
     if (!$formImageFilename) {
         return response()->json(['message' => 'Invalid form image format'], 400);
     }
-
+    
     // Insert data into the database
     $employee = DB::table('huzaifa_employees')->insert([
         'full_name' => $request->full_name,
@@ -474,63 +511,202 @@ public function signup_employee(Request $request)
         'phone' => $request->phone,
         'profile' => $profileFilename, // Store profile image filename
         'id_image' => $idImageFilename, // Store ID image filename
-        'form_image' => $formImageFilename // Store form image filename
+        'form_image' => $formImageFilename, // Store form image filename
+        'user_type' => $request->user_type 
     ]);
-
+    
     // Return the response
     if ($employee) {
         return response()->json([
             'status' => 'Succeess',
             'message' => 'Employee Created Successfully!', 
-    ], 200);
+        ], 200);
     } else {
         return response()->json([
             'status' => 'Error',
             'message' => 'Employee Could not be Created ', 
-    ], 400);
+        ], 400);
     }
 }
 
 // Function to decode base64 profile image and save it
-private function decodeProfileImage($base64String)
-{
-    return $this->saveBase64Image($base64String, 'profile_image');
-}
-
-// Function to decode base64 ID image and save it
-private function decodeIdImage($base64String)
-{
-    return $this->saveBase64Image($base64String, 'id_image');
-}
-
-// Function to decode base64 form image and save it
-private function decodeFormImage($base64String)
-{
-    return $this->saveBase64Image($base64String, 'form_image');
-}
-
+    private function decodeProfileImage($base64String)
+    {
+        return $this->saveBase64Image($base64String, 'profile_image');
+    }
+    
+    // Function to decode base64 ID image and save it
+    private function decodeIdImage($base64String)
+    {
+        return $this->saveBase64Image($base64String, 'id_image');
+    }
+    
+    // Function to decode base64 form image and save it
+    private function decodeFormImage($base64String)
+    {
+        return $this->saveBase64Image($base64String, 'form_image');
+    }
+    
 // General function to save base64 image data
 private function saveBase64Image($base64String, $prefix)
 {
     $base64Data = $this->extractBase64empData($base64String);
-
+    
     if (!$base64Data) {
         return false;
     }
-
+    
     // Generate a unique filename
     $filename = $prefix . '_' . time() . '.png';
-
+    
     // Save the image
     Storage::disk('public')->put($filename, base64_decode($base64Data));
-
+    
     return $filename;
 }
 
-// Function to extract base64 image data
-private function extractBase64empData($base64String)
-{
+    // Function to extract base64 image data
+    private function extractBase64empData($base64String)
+    {
     return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
+    }
+    // ///////////////////////////  Employee Log In Api ///////////////////////////////////////////
+    public function login_employees(Request $request){
+    // Custom Validation
+    if(empty($request->email) || empty($request->password)){
+        return response()->json([
+    'status' => 'error',
+    'message' => 'All Fields are Required' 
+    ], 200);
+    }
+
+    // Retrieving the User by Email
+    $user = DB::table('huzaifa_employees')->where('email', $request->email)->first();
+
+    // Checking If the user exists and the password is correct
+    if($user && Hash::check($request->password, $user->password)){
+    return response()->json([
+        'status' => 'success',
+        'Message' => 'User Logged in Successfully! ',
+        'data' => $user
+    ], 200);
+    }else{
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Email and Password does not Match!'
+    ], 400);
+    }
+    }
+    // ////////////////////////////////////// Employee Forget Password Api /////////////////////////////
+public function forget_passwordforemp(Request $request){
+    // Storing the given email in $email variable
+    $email = $request->input('email');
+
+    // Checking If the user exists
+    $user = DB::table('huzaifa_employees')->where('email', $email)->first();
+    
+    if(!$user){
+        return response()->json([
+            'status' => 'Error',
+            'message' => 'User does not exists'
+        ], 400);
+    }
+
+    // Generating a 4-digit random number as OTP
+    $otp = rand(1000, 9999);
+    DB::table('huzaifa_employees_otp')->updateOrInsert(
+        ['user_email' => $email],
+        ['otp' => $otp]
+    );
+
+    // Sending OTP to User's email
+    $this->sendOtpEmailforemp($email, $otp);
+    return response()->json([
+        'status' => 'Success',
+        'message' => 'OTP has been sent to your Email',
+        'OTP' => $otp,
+    ]);
 }
+
+private function sendOtpEmailforemp($email, $otp)
+{
+    $subject = "Your Password Reset OTP";
+    $message = "Your OTP for resetting your password is: $otp";
+
+    Mail::raw($message, function ($mail) use ($email, $subject) {
+        $mail->to($email)
+            ->subject($subject);
+    });
+}  
+
+// //////////////////////////////////////  Employee Update Password Api ///////////////////////////////////////
+public function reset_password_employee(Request $request){
+    $email = $request->input('email');
+    $newpassword = $request->input('password');
+
+    // Checking if the user exists in the database table
+    $user = DB::table('huzaifa_employees')->where('email', $email)->first();
+
+    if (!$user) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'User does not exist'
+        ], 400);
+    }
+
+    // Hashing the new password
+    $hashpassword = Hash::make($newpassword);
+    
+    // Update the password in the database
+    DB::table('huzaifa_employees')
+        ->where('email', $email)
+        ->update(['password' => $hashpassword]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Password Updated Successfully'
+    ], 200);
+}
+////////////////////////////////// Enabling Chat Connections ///////////////////////////////////////////
+    public function enablechat(Request $request)
+{
+    // Validating sender_id and receiver_id
+    $request->validate([
+        'sender_id' => 'required|integer',
+        'receiver_id' => 'required|integer',
+    ]);
+
+    // Getting the sender_id and receiver_id from the request
+    $sender_id = $request->input('sender_id');
+    $receiver_id = $request->input('receiver_id');
+
+    // Checking if sender exists in huzaifa_users table
+    $senderexists = DB::table('huzaifa_users')->where('id', $sender_id)->exists();
+
+    // Checking if receiver exists in huzaifa_employees table
+    $receiverexists = DB::table('huzaifa_employees')->where('id', $receiver_id)->exists();
+
+    // If both sender and receiver exist
+    if ($senderexists && $receiverexists) {
+        // Insert sender_id and receiver_id into huzaifa_chat_connections table
+        DB::table('huzaifa_chat_connections')->insert([
+            'sender_id' => $sender_id,
+            'receiver_id' => $receiver_id,
+        ]);
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Chat Enabled between Sender and Receiver',
+        ], 200);
+    } else {
+        // Return error response if sender or receiver not found
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Sender or Receiver Id not found'
+        ], 400);
+    }
+}
+
 
 }
