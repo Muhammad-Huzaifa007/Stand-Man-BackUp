@@ -29,6 +29,7 @@ Route::PUT('reset_password', [Api2Controller::class, 'reset_password']);
 
 /////////////////////////////////  Jobs  /////////////////////////////////////////////////
 Route::POST('create_jobs', [Api2Controller::class, 'create_jobs']);
+Route::POST('calculate_payment', [Api2Controller::class, 'calculate_payment']);
 Route::GET('show_jobs', [Api2Controller::class, 'show_jobs']);
 Route::GET('accepted_jobs', [Api2Controller::class, 'accepted_jobs']);
 Route::PUT('update_accepted_jobs', [Api2Controller::class, 'update_accepted_jobs']);

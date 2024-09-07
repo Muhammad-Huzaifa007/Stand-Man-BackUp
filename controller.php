@@ -200,8 +200,8 @@ public function reset_password(Request $request){
     ], 200);
 }
  // //////////////////////////////////////    Create Jobs Api /////////////////////////////////////////
- public function create_jobs(Request $request)
- {
+     public function create_jobs(Request $request)
+    {
      // Validation
      $validator = Validator::make($request->all(), [
          'customer_id' => 'required|int',
@@ -212,71 +212,126 @@ public function reset_password(Request $request){
          'end_time' => 'required|string',
          'special_instructions' => 'required|string',
          'location' => 'required|string',
-        ]);
-        
+         'amount' => 'required|numeric|min:21',  // Minimum amount should be 21
+         'service_charges' => 'required|numeric',
+         'tax' => 'required|numeric',
+         'total_price' => 'required|numeric',
+     ]);
+ 
      if ($validator->fails()) {
          return response()->json(['errors' => $validator->errors()], 401);
-        }
-        
-        // Handling the Image
-        $encodedImage = $request->input('image');
-        $filename = $this->decodeBase64ImageForJob($encodedImage);
-        
-        if (!$filename) {
-            return response()->json(['message' => 'Invalid image format'], 400);
-        }
-        
-        // Inserting data into the database
-        $job = DB::table('huzaifa_create_jobs')->insert([
-            'customer_id' => $request->customer_id,
-            'image' => $filename,
-            'name' => $request->name,
-            'job_date' => $request->job_date,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
-            'special_instructions' => $request->special_instructions,
-            'location' => $request->location,
-        ]);
-        
-        // Return the response
-        if ($job) {
+     }
+ 
+     // Handling the Image
+     $encodedImage = $request->input('image');
+     $filename = $this->decodeBase64ImageForJob($encodedImage);
+ 
+     if (!$filename) {
+         return response()->json(['message' => 'Invalid image format'], 400);
+     }
+ 
+     // Inserting data into the database and getting the inserted ID
+     $jobId = DB::table('huzaifa_create_jobs')->insertGetId([
+         'customer_id' => $request->customer_id,
+         'image' => $filename,
+         'name' => $request->name,
+         'job_date' => $request->job_date,
+         'start_time' => $request->start_time,
+         'end_time' => $request->end_time,
+         'special_instructions' => $request->special_instructions,
+         'location' => $request->location,
+         'amount' => $request->amount,          // Taken from payload
+         'service_charges' => $request->service_charges, // Taken from payload
+         'tax' => $request->tax,                // Taken from payload
+         'total_price' => $request->total_price,// Taken from payload
+     ]);
+ 
+     // Return the response
+     if ($jobId) {
+         // Retrieve the job details from the database
+         $job = DB::table('huzaifa_create_jobs')->where('id', $jobId)->first();
+ 
          return response()->json([
              'status' => 'Success', 
-             'message' => 'Job Created Successfully!'], 200);
-            } else {
-                return response()->json([
+             'message' => 'Job Created Successfully!',
+             'data' => $job
+         ], 200);
+     } else {
+         return response()->json([
              'status' => 'Error',
              'message' => 'Job could not be created' 
-            ], 400);
-        }
-    }
-    
-    // Function to decode base64 image for job creation and save it
-    private function decodeBase64ImageForJob($base64String)
-    {
+         ], 400);
+     }
+     }
+ 
+ // Function to decode base64 image for job creation and save it
+ private function decodeBase64ImageForJob($base64String)
+ {
      // Extract base64 data
-     $base64Data = $this->extractBase64ImageData($base64String);
+     $base64Data = $this->getBase64ImageContent($base64String);
      
      if (!$base64Data) {
          return false;
-        }
-        
-        // Generate a unique filename
-        $filename = 'job_image_' . time() . '.png';
-        
-        // Save the image
-        Storage::disk('public')->put($filename, base64_decode($base64Data));
-        
-        return $filename;
-    }
+     }
+     
+     // Generate a unique filename
+     $filename = 'job_image_' . time() . '.png';
+     
+     // Save the image
+     Storage::disk('public')->put($filename, base64_decode($base64Data));
+     
+     return $filename;
+ }
+ 
+ // Renamed function to get base64 image content
+ private function getBase64ImageContent($base64String)
+ {
+     // Check if the string is in base64 format and remove the metadata part
+     return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
+ }
+ 
     
-    // Function to extract base64 image data
-    private function extractBase64ImageData($base64String)
-    {
-        // Check if the string is in base64 format and remove the metadata part
-        return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
+    // //////////////////////////////////////    Job Estimated Payment Api /////////////////////////////////
+    public function calculate_payment(Request $request)
+{
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'start_time' => 'required|string',
+        'end_time' => 'required|string',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 401);
     }
-    
+
+    // Calculate the amount based on start_time and end_time
+    $startTime = strtotime($request->start_time);
+    $endTime = strtotime($request->end_time);
+    $totalMinutes = ($endTime - $startTime) / 60;
+
+    $hourlyRate = 21; // $21 per hour
+    $minuteRate = 0.35; // 0.35¢ per minute
+
+    // Ensure minimum amount is $21
+    $calculatedAmount = max(($hourlyRate * floor($totalMinutes / 60)) + ($minuteRate * ($totalMinutes % 60)), 21);
+
+    // Calculate service charges (10%) and tax (13%)
+    $calculatedServiceCharges = $calculatedAmount * 0.10;
+    $calculatedTax = $calculatedAmount * 0.13;
+    $calculatedTotalPrice = $calculatedAmount + $calculatedServiceCharges + $calculatedTax;
+
+    // Return the calculated values
+    return response()->json([
+        'status' => 'Success',
+        'message' => 'Payment Calculated Successfully!',
+        'calculated_amount' => $calculatedAmount,
+        'calculated_service_charges' => $calculatedServiceCharges,
+        'calculated_tax' => $calculatedTax,
+        'calculated_total_price' => $calculatedTotalPrice
+    ], 200);
+}
+
+
     // //////////////////////////////////////    Show All Jobs  Api /////////////////////////////////
     public function show_jobs(){
         $jobs = DB::table('huzaifa_create_jobs')->get();
