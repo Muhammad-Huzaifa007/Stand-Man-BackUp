@@ -244,7 +244,7 @@ public function reset_passwordforcust(Request $request){
          'service_charges' => $request->service_charges, // Taken from payload
          'tax' => $request->tax,                // Taken from payload
          'total_price' => $request->total_price,// Taken from payload
-         'status' => 'pending',  // Default status
+         'status' => 'Pending',  // Default status
      ]);
  
      // Return the response
@@ -579,9 +579,9 @@ return response()->json([
     'message' => 'Password Updated Successfully'
 ], 200);
 }
-    // //////////////////////////////////////    Show Pending Jobs Api | Employee side -> My Jobs /////////////////////////////////
+    // //////////////////////////////////////    Show Pending Jobs Api | Employee side -> My Jobs //////////////////////////
     public function show_pending_jobs(){
-        $jobs = DB::table('huzaifa_create_jobs')->where('status', 'pending')->get();
+        $jobs = DB::table('huzaifa_create_jobs')->where('status', 'Pending')->get();
         return response()->json([
             'status' => 'success',
             'jobs' => $jobs
@@ -607,7 +607,7 @@ return response()->json([
         }
     
         // Check if the job is already accepted
-        if ($job->status === 'accepted') {
+        if ($job->status === 'Accepted') {
             return response()->json([
                 'status' => 'error',
                 'message' => 'This job has already been accepted'
@@ -617,7 +617,7 @@ return response()->json([
         // Update the job status to 'accepted' in the huzaifa_create_jobs table
         DB::table('huzaifa_create_jobs')
             ->where('id', $request->job_id)
-            ->update(['status' => 'accepted']);
+            ->update(['status' => 'Accepted']);
     
         // Insert the job data into the huzaifa_accepted_jobs table
         DB::table('huzaifa_accepted_jobs')->insert([
@@ -634,7 +634,7 @@ return response()->json([
             'service_charges' => $job->service_charges,
             'tax' => $job->tax,
             'total_price' => $job->total_price,
-            'status' => 'accepted',
+            'status' => 'Accepted',
         ]);
     
         // Retrieve the updated job details to include the updated status
@@ -677,7 +677,7 @@ public function show_employee_jobs(Request $request)
     }
 
     // Proceed if the customer_id exists
-    $acceptedJobs = DB::table('huzaifa_accepted_jobs')->where('status', 'accepted')->get();
+    $acceptedJobs = DB::table('huzaifa_accepted_jobs')->where('status', 'Accepted')->get();
 
     return response()->json([
         'status' => 'success',
