@@ -27,14 +27,17 @@ Route::POST('login_customers', [Api2Controller::class, 'login_customers']);
 Route::POST('forget_passwordforcust', [Api2Controller::class, 'forget_passwordforcust']);
 Route::PUT('reset_passwordforcust', [Api2Controller::class, 'reset_passwordforcust']);
 
-/////////////////////////////////  Jobs  /////////////////////////////////////////////////
+/////////////////////////////////  Jobs | Customer Side /////////////////////////////////////////////////
 Route::POST('create_jobs', [Api2Controller::class, 'create_jobs']);
 Route::POST('calculate_payment', [Api2Controller::class, 'calculate_payment']);
-Route::GET('show_pending_jobs', [Api2Controller::class, 'show_pending_jobs']);
 Route::GET('show_customer_jobs', [Api2Controller::class, 'show_customer_jobs']);
+
+/////////////////////////////////  Jobs | Employee Side /////////////////////////////////////////////////
+Route::GET('show_pending_jobs', [Api2Controller::class, 'show_pending_jobs']);
 Route::GET('accepted_jobs', [Api2Controller::class, 'accepted_jobs']);
 Route::PUT('update_accepted_jobs', [Api2Controller::class, 'update_accepted_jobs']);
-Route::GET('show_accepted_jobs', [Api2Controller::class, 'show_accepted_jobs']);
+Route::GET('show_employee_jobs', [Api2Controller::class, 'show_employee_jobs']);
+
 Route::POST('delete_job', [Api2Controller::class, 'delete_job']);
 
 //////////////////////////////  Employee  ////////////////////////////////////////////////////////
