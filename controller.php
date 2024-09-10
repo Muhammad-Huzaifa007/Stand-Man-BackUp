@@ -123,19 +123,19 @@ class Api2Controller extends Controller
     }
     
 }
-// //////////////////////////////////////  Forget Password Api /////////////////////////////
-public function forget_password_employee(Request $request)
+// //////////////////////////////////////  Forget Password for Customers Api /////////////////////////////
+public function forget_passwordforcust(Request $request)
     {
         // Storing the given email in $email variable
         $email = $request->input('email');
 
         // Checking if the employee exists in the huzaifa_employees table
-        $employee = DB::table('huzaifa_employees')->where('email', $email)->first();
+        $employee = DB::table('huzaifa_users')->where('email', $email)->first();
 
         if (!$employee) {
             return response()->json([
                 'status' => 'Error',
-                'message' => 'Employee does not exist'
+                'message' => 'Customer does not exist'
             ], 404);
         }
 
@@ -143,11 +143,11 @@ public function forget_password_employee(Request $request)
         $otp = rand(1000, 9999);
 
         // Storing or updating the OTP in huzaifa_employees_otp table
-        DB::table('huzaifa_employees_otp')->updateOrInsert(
-            ['employee_email' => $email],
+        DB::table('huzaifa_users_otp')->updateOrInsert(
+            ['user_email' => $email],
             ['otp' => $otp]
         );
-
+        
         // Sending OTP to employee's email
         $this->dispatchOtpEmail($email, $otp);
 
@@ -171,8 +171,8 @@ public function forget_password_employee(Request $request)
         });
     }
 
-// //////////////////////////////////////  Update Password Api ///////////////////////////////////////
-public function reset_password(Request $request){
+// //////////////////////////////////////  Update Password for Customer Api ///////////////////////////////////////
+public function reset_passwordforcust(Request $request){
     $email = $request->input('email');
     $newpassword = $request->input('password');
 
@@ -200,8 +200,8 @@ public function reset_password(Request $request){
     ], 200);
 }
  // //////////////////////////////////////    Create Jobs Api /////////////////////////////////////////
-     public function create_jobs(Request $request)
-    {
+ public function create_jobs(Request $request)
+ {
      // Validation
      $validator = Validator::make($request->all(), [
          'customer_id' => 'required|int',
@@ -217,7 +217,7 @@ public function reset_password(Request $request){
          'tax' => 'required|numeric',
          'total_price' => 'required|numeric',
      ]);
- 
+
      if ($validator->fails()) {
          return response()->json(['errors' => $validator->errors()], 401);
      }
@@ -230,7 +230,7 @@ public function reset_password(Request $request){
          return response()->json(['message' => 'Invalid image format'], 400);
      }
  
-     // Inserting data into the database and getting the inserted ID
+     // Inserting data into the database with default status 'pending'
      $jobId = DB::table('huzaifa_create_jobs')->insertGetId([
          'customer_id' => $request->customer_id,
          'image' => $filename,
@@ -244,6 +244,7 @@ public function reset_password(Request $request){
          'service_charges' => $request->service_charges, // Taken from payload
          'tax' => $request->tax,                // Taken from payload
          'total_price' => $request->total_price,// Taken from payload
+         'status' => 'pending',  // Default status
      ]);
  
      // Return the response
@@ -254,7 +255,7 @@ public function reset_password(Request $request){
          return response()->json([
              'status' => 'Success', 
              'message' => 'Job Created Successfully!',
-             'data' => $job
+             'data' => $job,
          ], 200);
      } else {
          return response()->json([
@@ -262,11 +263,11 @@ public function reset_password(Request $request){
              'message' => 'Job could not be created' 
          ], 400);
      }
-     }
+ }
  
  // Function to decode base64 image for job creation and save it
- private function decodeBase64ImageForJob($base64String)
- {
+    private function decodeBase64ImageForJob($base64String)
+    {
      // Extract base64 data
      $base64Data = $this->getBase64ImageContent($base64String);
      
@@ -281,14 +282,15 @@ public function reset_password(Request $request){
      Storage::disk('public')->put($filename, base64_decode($base64Data));
      
      return $filename;
- }
+    }
  
- // Renamed function to get base64 image content
- private function getBase64ImageContent($base64String)
- {
+    // Renamed function to get base64 image content
+    private function getBase64ImageContent($base64String)
+    {
      // Check if the string is in base64 format and remove the metadata part
      return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
  }
+ 
  
     
     // //////////////////////////////////////    Job Estimated Payment Api /////////////////////////////////
@@ -332,9 +334,9 @@ public function reset_password(Request $request){
 }
 
 
-    // //////////////////////////////////////    Show All Jobs  Api /////////////////////////////////
-    public function show_jobs(){
-        $jobs = DB::table('huzaifa_create_jobs')->get();
+    // //////////////////////////////////////    Show Pending Jobs  Api /////////////////////////////////
+    public function show_pending_jobs(){
+        $jobs = DB::table('huzaifa_create_jobs')->where('status', 'pending')->get();
         return response()->json([
             'status' => 'success',
             'jobs' => $jobs
@@ -342,44 +344,57 @@ public function reset_password(Request $request){
     }
     // //////////////////////////////////////    Accepting Jobs Api //////////////////////////////
     public function accepted_jobs(Request $request)
-    {
-        // Validate the incoming request
-        $request->validate([
-            'employee_id' => 'required|integer',
-            'job_id' => 'required|integer',
-        ]);
-        
-        // Retrieve the job details from the huzaifa_create_jobs table
-        $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
-        
-        if (!$job) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Job not found'
-            ], 400);
-        }
-        
-        // Insert the job into the huzaifa_accepted_jobs table with employee_id
-        DB::table('huzaifa_accepted_jobs')->insert([
-            'job_id' => $job->id,
-            'employee_id' => $request->employee_id,
-            'image' => $job->image,
-            'name' => $job->name,
-            'job_date' => $job->job_date,
-            'start_time' => $job->start_time,
-            'end_time' => $job->end_time,
-            'special_instructions' => $job->special_instructions,
-            'location' => $job->location,
-            
-        ]);
-        
-        // Return a success message and the accepted job details
+{
+    // Validate the incoming request
+    $request->validate([
+        'employee_id' => 'required|integer',
+        'job_id' => 'required|integer',
+    ]);
+
+    // Retrieve the job details from the huzaifa_create_jobs table
+    $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
+
+    if (!$job) {
         return response()->json([
-            'status' => 'success',
-            'message' => 'Job accepted successfully',
-            'accepted_job' => $job
-        ], 200);
+            'status' => 'error',
+            'message' => 'Job not found'
+        ], 400);
     }
+
+    // Check if the job is already accepted
+    if ($job->status === 'accepted') {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'This job has already been accepted'
+        ], 400);
+    }
+
+    // Update the job status to 'accepted' in the huzaifa_create_jobs table
+    DB::table('huzaifa_create_jobs')
+        ->where('id', $request->job_id)
+        ->update(['status' => 'accepted']);
+
+    // Retrieve the updated job details to include the updated status
+    $updatedJob = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
+
+    // Return a success message and the accepted job details
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Job accepted successfully',
+        'accepted_job' => $updatedJob
+    ], 200);
+}
+ // //////////////////////////////////////    Show Accepted Jobs  Api /////////////////////////////////
+    public function show_accepted_jobs(){
+    $jobs = DB::table('huzaifa_create_jobs')->where('status', 'accepted')->get();
+    return response()->json([
+        'status' => 'success',
+        'jobs' => $jobs
+    ], 200);
+    }
+
+    
+    
     // //////////////////////////////////////  Edit Accepted Jobs Api //////////////////////////////
     public function update_accepted_jobs(Request $request){
         $request->validate([
@@ -425,38 +440,44 @@ public function reset_password(Request $request){
         ], 200);
     }
 
-    // /////////////////////////  Displaying Accepted Jobs by Employee Id Api ///////////////////
-    public function show_accepted_jobs(Request $request)
-    {
-        // Validation
-        $validator = Validator::make($request->all(), [
-            'employee_id' => 'required|integer', 
-        ]);
-    
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => $validator->errors(),
-            ], 400);
-        }
-    
-        // Getting Employee Id from Request
-        $employeeId = $request->input('employee_id');
-    
-        // Fetching the records from the table
-        $acceptedjobs = DB::table('huzaifa_accepted_jobs')->where('employee_id', $employeeId)->get();
-    
-        if ($acceptedjobs) {
-            return response()->json([
-                'status' => 'success',
-                'data' => $acceptedjobs,
-            ], 200);
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Id not found',
-            ], 400);
-        }
+    // /////////////////////////  Displaying Accepted Jobs by Customer Id Api ///////////////////
+    public function show_customer_jobs(Request $request)
+{
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'customer_id' => 'required|integer', 
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'error' => $validator->errors(),
+        ], 400);
     }
+
+    // Getting Customer ID from Request
+    $customerId = $request->input('customer_id');
+
+    // Check if the customer_id does not exist
+    $existingCustomer = DB::table('huzaifa_create_jobs')->where('customer_id', $customerId)->exists();
+
+    if (!$existingCustomer) {
+        // If customer_id does not exist, return an error
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Customer ID does not exist.',
+        ], 404); 
+    }
+
+    // Proceed if the customer_id exists
+    $createdJobs = DB::table('huzaifa_create_jobs')->where('customer_id', $customerId)->get();
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $createdJobs,
+    ], 200);
+}
+
+
     
     // //////////////////////////////////////    Show Jobs by Id Api ////////////////////////////////
     public function show_jobsbyId(Request $request)
@@ -515,8 +536,8 @@ public function reset_password(Request $request){
     }
 
 // ///////////////////////////  Employee Sign Up Api ///////////////////////////////////////////
-public function signup_employee(Request $request)
-{
+    public function signup_employee(Request $request)
+    {
     // Validation
     $validator = Validator::make($request->all(), [
         'full_name' => 'required|string',
@@ -603,8 +624,8 @@ public function signup_employee(Request $request)
     }
     
 // General function to save base64 image data
-private function saveBase64Image($base64String, $prefix)
-{
+    private function saveBase64Image($base64String, $prefix)
+    {
     $base64Data = $this->extractBase64empData($base64String);
     
     if (!$base64Data) {
@@ -670,7 +691,7 @@ public function forget_passwordforemp(Request $request){
     // Generating a 4-digit random number as OTP
     $otp = rand(1000, 9999);
     DB::table('huzaifa_employees_otp')->updateOrInsert(
-        ['user_email' => $email],
+        ['employee_email' => $email],
         ['otp' => $otp]
     );
 
@@ -695,7 +716,7 @@ private function sendOtpEmailforemp($email, $otp)
 }  
 
 // //////////////////////////////////////  Employee Update Password Api ///////////////////////////////////////
-public function reset_password_employee(Request $request){
+public function reset_passwordforemp(Request $request){
     $email = $request->input('email');
     $newpassword = $request->input('password');
 
