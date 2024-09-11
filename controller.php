@@ -369,9 +369,10 @@ public function show_customer_jobs(Request $request)
     ], 200);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////       Employee Side     ////////////////////////////////////////////////////////////
+///////////////////////////////////////////////          Employee Side     /////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// ///////////////////////////  Employee Sign Up Api ///////////////////////////////////////////
+
+// ///////////////////////////  Employee Sign Up Api ///////////////////////////////////////////////////////////////////////////////
 public function signup_employee(Request $request)
 {
 // Validation
@@ -605,7 +606,7 @@ return response()->json([
                 'message' => 'Job not found'
             ], 400);
         }
-    
+
         // Check if the job is already accepted
         if ($job->status === 'Accepted') {
             return response()->json([
@@ -729,6 +730,106 @@ public function show_employee_jobs(Request $request)
             'Updated Job' => $updatedjobs
         ], 200);
     }
+      // //////////////////////////////////////    Started/On going Jobs Api //////////////////////////////
+      public function started_jobs(Request $request)
+      {
+          // Validate the incoming request
+          $request->validate([
+              'employee_id' => 'required|integer',
+              'job_id' => 'required|integer',
+          ]);
+      
+          // Retrieve the job details from the huzaifa_create_jobs table
+          $job = DB::table('huzaifa_accepted_jobs')->where('job_id', $request->job_id)->first();
+      
+          if (!$job) {
+              return response()->json([
+                  'status' => 'error',
+                  'message' => 'Job not found'
+              ], 400);
+          }
+                  
+          // Check if the job is already accepted
+          if ($job->status === 'On Going') {
+              return response()->json([
+                  'status' => 'error',
+                  'message' => 'This job has already been Started'
+              ], 400);
+          }
+      
+          // Update the job status to 'accepted' in the huzaifa_create_jobs table
+          DB::table('huzaifa_create_jobs')
+              ->where('id', $request->job_id)
+              ->update(['status' => 'On Going']);
+
+          DB::table('huzaifa_accepted_jobs')
+              ->where('job_id', $request->job_id)
+              ->update(['status' => 'On Going']);
+      
+          // Insert the job data into the huzaifa_started_jobs table
+          DB::table('huzaifa_started_jobs')->insert([
+              'job_id' => $job->id,
+              'employee_id' => $request->employee_id,
+              'image' => $job->image,
+              'name' => $job->name,
+              'job_date' => $job->job_date,
+              'start_time' => $job->start_time,
+              'end_time' => $job->end_time,
+              'special_instructions' => $job->special_instructions,
+              'location' => $job->location,
+              'amount' => $job->amount,
+              'service_charges' => $job->service_charges,
+              'tax' => $job->tax,
+              'total_price' => $job->total_price,
+              'status' => 'On Going',
+          ]);
+      
+          // Retrieve the updated job details to include the updated status
+          $startedJob = DB::table('huzaifa_accepted_jobs')->where('job_id', $request->job_id)->first();
+      
+          // Return a success message and the accepted job details
+          return response()->json([
+              'status' => 'success',
+              'message' => 'Job Started successfully',
+              'Started_job' => $startedJob
+          ], 200);
+      }
+// /////////////////////////  Displaying Started/On GOingJobs by Employee Id Api ///////////////////
+public function show_started_jobs(Request $request)
+{
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'employee_id' => 'required|integer', 
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'error' => $validator->errors(),
+        ], 400);
+    }
+
+    // Getting Customer ID from Request
+    $employeeId = $request->input('employee_id');
+
+    // Check if the customer_id does not exist
+    $existingEmployee = DB::table('huzaifa_started_jobs')->where('employee_id', $employeeId)->exists();
+
+    if (!$existingEmployee) {
+        // If customer_id does not exist, return an error
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Employee ID does not exist.',
+        ], 404); 
+    }
+
+    // Proceed if the customer_id exists
+    $startedJobs = DB::table('huzaifa_started_jobs')->where('status', 'On Going')->get();
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $startedJobs,
+    ], 200);
+}
 
 // ///////////////////////////  Delete Job Api ///////////////////////////////////////////
     public function delete_job(Request $request){

@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 //Authentication  
-// Route::get('show',[Api2Controller::class,'show']);
 
 //////////////////////////////////  Cutomers //////////////////////////////////////////////////////////
 Route::POST('signup_customer',[Api2Controller::class,'signup_customers']);
@@ -34,9 +33,13 @@ Route::GET('show_customer_jobs', [Api2Controller::class, 'show_customer_jobs']);
 
 /////////////////////////////////  Jobs | Employee Side /////////////////////////////////////////////////
 Route::GET('show_pending_jobs', [Api2Controller::class, 'show_pending_jobs']);
+
 Route::GET('accepted_jobs', [Api2Controller::class, 'accepted_jobs']);
 Route::PUT('update_accepted_jobs', [Api2Controller::class, 'update_accepted_jobs']);
 Route::GET('show_employee_jobs', [Api2Controller::class, 'show_employee_jobs']);
+
+Route::POST('started_jobs', [Api2Controller::class, 'started_jobs']);
+Route::POST('show_started_jobs', [Api2Controller::class, 'show_started_jobs']);
 
 Route::POST('delete_job', [Api2Controller::class, 'delete_job']);
 
