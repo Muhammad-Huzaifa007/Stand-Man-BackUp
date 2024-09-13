@@ -43,6 +43,9 @@ Route::GET('show_employee_jobs', [Api2Controller::class, 'show_employee_jobs']);
 Route::POST('started_jobs', [Api2Controller::class, 'started_jobs']);
 Route::POST('show_started_jobs', [Api2Controller::class, 'show_started_jobs']);
 
+Route::POST('completed_jobs', [Api2Controller::class, 'completed_jobs']);
+Route::POST('cancelled_jobs', [Api2Controller::class, 'cancelled_jobs']);
+
 Route::POST('delete_job', [Api2Controller::class, 'delete_job']);
 
 //////////////////////////////  Employee  ////////////////////////////////////////////////////////
