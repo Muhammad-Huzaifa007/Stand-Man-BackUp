@@ -60,3 +60,9 @@ Route::PUT('reset_passwordforemp', [Api2Controller::class, 'reset_passwordforemp
 
 /////////////////////////// Chat Connection and Message ///////////////////////////////////////
 Route::POST('enablechat', [Api2Controller::class, 'enablechat']);
+
+
+//////////////////////////  Job Rating and Reviews ////////////////////////////////////////
+Route::POST('job_rating', [Api2Controller::class, 'job_rating']);
+Route::GET('show_job_rating', [Api2Controller::class, 'show_job_rating']);
+

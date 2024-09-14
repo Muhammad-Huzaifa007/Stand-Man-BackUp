@@ -358,7 +358,7 @@ public function show_customer_jobs(Request $request)
         return response()->json([
             'status' => 'error',
             'message' => 'Customer ID does not exist.',
-        ], 404); 
+        ], 400); 
     }
 
     // Proceed if the customer_id exists
@@ -1055,6 +1055,117 @@ public function completed_jobs(Request $request){
         ], 400);
     }
 }
+//////////////////////////////////////////    Job Ratings and Reveiws //////////////////////////////////////////////////
+public function job_rating(Request $request) {
+    // Validate job_rating and job_review input
+    $validated = $request->validate([
+        'customer_id' => 'required',                  
+        'employee_id' => 'required',                        
+        'job_id'      => 'required',                         
+        'job_rating'  => 'required',            
+        'job_review'  => 'required'                            
+    ]);
 
+    // Extract validated input
+    $customer_id = $request->input('customer_id');
+    $employee_id = $request->input('employee_id');
+    $job_id = $request->input('job_id');
+    $job_rating = $request->input('job_rating');
+    $job_review = $request->input('job_review');
+
+    // Verify if customer_id exists in huzaifa_users table
+    $customerExists = DB::table('huzaifa_users')->where('id', $customer_id)->exists();
+    if (!$customerExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid customer ID'
+        ], 400);
+    }
+
+    // Verify if employee_id exists in huzaifa_employees table
+    $employeeExists = DB::table('huzaifa_employees')->where('id', $employee_id)->exists();
+    if (!$employeeExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid employee ID'
+        ], 400);
+    }
+
+    // Verify if job_id exists in huzaifa_create_jobs table
+    $jobExists = DB::table('huzaifa_create_jobs')->where('id', $job_id)->exists();
+    if (!$jobExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid job ID'
+        ], 400);
+    }
+
+    // Check if the job_id already exists in the huzaifa_job_ratings table
+    $existingRating = DB::table('huzaifa_job_ratings')->where('job_id', $job_id)->first();
+    if ($existingRating) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Job rating for this job ID already exists.'
+        ], 400);
+    }
+
+    // Insert the new rating and review into huzaifa_job_ratings table and get the ID of the inserted record
+    $ratingId = DB::table('huzaifa_job_ratings')->insertGetId([
+        'customer_id' => $customer_id,
+        'employee_id' => $employee_id,
+        'job_id'      => $job_id,
+        'job_rating'  => $job_rating,
+        'job_review'  => $job_review,
+
+    ]);
+
+    // Fetch the inserted job rating by its ID
+    $insertedRating = DB::table('huzaifa_job_ratings')->where('id', $ratingId)->first();
+
+    // Return the success response with the inserted rating details
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Job rating and review submitted successfully.',
+        'data' => $insertedRating
+    ], 200);
+}
+
+//////////////////////////////////////// Show Job Rating details by job_id ////////////////////////////////////
+public function show_job_rating(Request $request)
+ {
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'job_id' => 'required|integer', 
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'error' => $validator->errors(),
+        ], 400);
+    }
+
+    // Getting Job ID from Request
+    $jobId = $request->input('job_id');
+
+    // Check if the Job_id does not exist
+    $existingjob = DB::table('huzaifa_job_ratings')->where('id', $jobId)->exists();
+
+    if (!$existingjob) {
+        // If job_id does not exist, return an error
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Job ID does not exist.',
+        ], 400); 
+    }
+
+    // Proceed if the job_id exists
+    $createdJobs = DB::table('huzaifa_job_ratings')->where('id', $jobId)->get();
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $createdJobs,
+    ], 200);
+
+ }
 
 }
