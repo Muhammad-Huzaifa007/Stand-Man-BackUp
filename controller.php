@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Mail;
 
 class Api2Controller extends Controller
 {
-    // //////////////////////////////////////    SIgn Up Api ///////////////////////////////////
+    // //////////////////////////////////////    Sign Up Api ///////////////////////////////////
     public function signup_customers(Request $request)
     {
         // Validation
@@ -406,6 +406,94 @@ public function show_customer_jobs(Request $request)
         'jobs' => $jobs
     ], 200);
 }
+   // //////////////////////////////////////  Edit Accepted Jobs Api //////////////////////////////
+   public function edit_jobs(Request $request) {
+    $request->validate([
+        'job_id' => 'required|int',  // Validate job_id
+        'customer_id' => 'required|int',  // Validate customer_id
+        'image' => 'required|string', // Base64 validation
+        'name' => 'required|string',
+        'job_date' => 'required|string',
+        'start_time' => 'required|string',
+        'end_time' => 'required|string',
+        'special_instructions' => 'required|string',
+        'location' => 'required|string',
+        'amount' => 'required|numeric|min:21',  // Minimum amount should be 21
+        'service_charges' => 'required|numeric',
+        'tax' => 'required|numeric',
+        'total_price' => 'required|numeric',
+    ]);
+
+    // Check if the job exists in huzaifa_create_jobs table
+    $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
+    
+    if (!$job) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Job not found, Job Id is incorrect',
+        ], 400);
+    }
+
+    // Verify if the customer_id exists in the customers table (assuming you have a customers table)
+    $customer = DB::table('huzaifa_create_jobs')->where('customer_id', $request->customer_id)->first();
+    
+    if (!$customer) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Customer not found, Customer Id is incorrect',
+        ], 400);
+    }
+
+    // Update the fields in huzaifa_create_jobs table
+    DB::table('huzaifa_create_jobs')
+    ->where('id', $request->job_id)
+    ->update([
+        'customer_id' => $request->input('customer_id'),
+        'image' => $request->input('image'),
+        'name' => $request->input('name'),
+        'job_date' => $request->input('job_date'),
+        'start_time' => $request->input('start_time'),
+        'end_time' => $request->input('end_time'),
+        'special_instructions' => $request->input('special_instructions'),
+        'location' => $request->input('location'),
+        'amount' => $request->input('amount'), // Taken from payload
+        'service_charges' => $request->input('service_charges'), // Taken from payload
+        'tax' => $request->input('tax'),
+        'total_price' => $request->input('total_price'),
+    ]);
+
+    // Fetch the updated job details
+    $updatedJob = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
+
+    return response()->json([
+        'status' => 'Success',
+        'message' => 'Job updated successfully!',
+        'Updated Job' => $updatedJob
+    ], 200);
+}
+// ///////////////////////////  Delete Job Api ///////////////////////////////////////////
+    public function delete_job(Request $request){
+    $request->validate([
+        'job_id' => 'required|integer'
+    ]);
+
+    // Finding the Job in huzaifa_create_jobs table by it's Id
+    $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
+
+    if(!$job){
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Job Id not found',
+    ],400);
+    }
+    DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->delete();
+
+    return response()->json([
+    'status' => 'success',
+    'message' => 'Job deleted!',
+    ],200);
+
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////          Employee Side     /////////////////////////////////////////////////
@@ -727,50 +815,6 @@ public function show_employee_jobs(Request $request)
     ], 200);
 }
 
-    // //////////////////////////////////////  Edit Accepted Jobs Api //////////////////////////////
-    public function update_accepted_jobs(Request $request){
-        $request->validate([
-            'job_id' => 'required|integer',
-            'image' => 'required|string',
-            'name' => 'required|string',
-            'job_date' => 'required|string',
-            'start_time' => 'required|string',
-            'end_time' => 'required|string',
-            'special_instructions' => 'required|string',
-            'location' => 'required|string',
-        ]);
-        // Finding the Jobs in huzaifa_accepted_jobs table by job_id
-        $job = DB::table('huzaifa_accepted_jobs')->where('job_id', $request->job_id)->first();
-        
-        if(!$job){
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Job not found, Job Id is Incorrect',
-            ], 400);
-        }
-
-        // Update the fields in huzaifa_acepted_jobs table
-        DB::table('huzaifa_accepted_jobs')
-        ->where('job_id', $request->job_id)
-        ->update([
-            'image' => $request->input('image'),
-            'name' => $request->input('name'),
-            'job_date' => $request->input('job_date'),
-            'start_time' => $request->input('start_time'),
-            'end_time' => $request->input('end_time'),
-            'special_instructions' => $request->input('special_instructions'),
-            'location' => $request->input('location'),
-        ]);
-
-        // Fetched the Updated Job details
-        $updatedjobs = DB::table('huzaifa_accepted_jobs')->where('job_id', $request->job_id)->first();
-
-        return response()->json([
-            'status' => 'Success',
-            'message' => 'Job updated Successfully!',
-            'Updated Job' => $updatedjobs
-        ], 200);
-    }
       // //////////////////////////////////////    Started/On going Jobs Api //////////////////////////////
       public function started_jobs(Request $request)
       {
@@ -990,30 +1034,6 @@ public function completed_jobs(Request $request){
         'message' => 'The job is Completed!',
         'completed job' => $completedjob
     ], 200);
-
-    }
-
-// ///////////////////////////  Delete Job Api ///////////////////////////////////////////
-    public function delete_job(Request $request){
-        $request->validate([
-            'job_id' => 'required|integer'
-        ]);
-
-    // Finding the Job in huzaifa_create_jobs table by it's Id
-    $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
-
-    if(!$job){
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Job Id not found',
-        ],400);
-    }
-    DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->delete();
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Job deleted!',
-    ],200);
 
     }
 
@@ -1250,6 +1270,4 @@ public function show_job_rating(Request $request)
         'message' => 'Amount successfully transferred from customer to employee!'
     ], 200);
 }
-
-
 }

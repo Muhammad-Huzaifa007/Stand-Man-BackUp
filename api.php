@@ -37,7 +37,7 @@ Route::GET('show_OnGoing_jobs', [Api2Controller::class, 'show_OnGoing_jobs']);
 Route::GET('show_pending_jobs', [Api2Controller::class, 'show_pending_jobs']);
 
 Route::GET('accepted_jobs', [Api2Controller::class, 'accepted_jobs']);
-Route::PUT('update_accepted_jobs', [Api2Controller::class, 'update_accepted_jobs']);
+Route::PUT('edit_jobs', [Api2Controller::class, 'edit_jobs']);
 Route::GET('show_employee_jobs', [Api2Controller::class, 'show_employee_jobs']);
 
 Route::POST('started_jobs', [Api2Controller::class, 'started_jobs']);
