@@ -494,6 +494,41 @@ public function show_customer_jobs(Request $request)
     ],200);
 
 }
+//////////////////////////////////// Show Complted Jobs /////////////////////////////////////
+public function show_completed_jobs(Request $request) {  
+    $cid = trim($request->input('customer_id'));
+
+    // Check if the customer exists in the huzaifa_create_jobs table
+    $customerExists = DB::table('huzaifa_create_jobs')->where('customer_id', $cid)->exists();
+
+    // If the customer does not exist, return an error response
+    if (!$customerExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Customer ID does not exist'
+        ], 400);
+    }
+
+    // Fetch the jobs for the customer with 'Completed' status
+    $jobs = DB::table('huzaifa_create_jobs')
+        ->where('customer_id', $cid)
+        ->where('status', 'Completed') 
+        ->get();
+
+    // Check if no jobs are found with 'Completed' status
+    if ($jobs->isEmpty()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Customer has no Completed jobs'
+        ], 400);
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'jobs' => $jobs
+    ], 200);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////          Employee Side     /////////////////////////////////////////////////
@@ -1027,7 +1062,7 @@ public function completed_jobs(Request $request){
     ->where('job_id', $request->job_id)
     ->update(['status' => 'Completed']);
 
-    $completedjob = DB::table('huzaifa_accepted_jobs')->where('job_id', $request->job_id)->first();
+    $completedjob = DB::table('huzaifa_started_jobs')->where('job_id', $request->job_id)->first();
 
     return response()->json([
         'status' => 'success',
