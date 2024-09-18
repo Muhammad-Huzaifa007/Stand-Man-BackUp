@@ -66,3 +66,6 @@ Route::POST('enablechat', [Api2Controller::class, 'enablechat']);
 Route::POST('job_rating', [Api2Controller::class, 'job_rating']);
 Route::GET('show_job_rating', [Api2Controller::class, 'show_job_rating']);
 
+
+//////////////////////////  Transaction ///////////////////////////////////////////////////
+Route::POST('transferamount', [Api2Controller::class, 'transferamount']);

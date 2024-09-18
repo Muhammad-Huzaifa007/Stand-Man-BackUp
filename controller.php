@@ -130,10 +130,10 @@ public function forget_passwordforcust(Request $request)
         // Storing the given email in $email variable
         $email = $request->input('email');
 
-        // Checking if the employee exists in the huzaifa_employees table
-        $employee = DB::table('huzaifa_users')->where('email', $email)->first();
+        // Checking if the Customer exists in the huzaifa_users table
+        $customer = DB::table('huzaifa_users')->where('email', $email)->first();
 
-        if (!$employee) {
+        if (!$customer) {
             return response()->json([
                 'status' => 'Error',
                 'message' => 'Customer does not exist'
@@ -143,13 +143,13 @@ public function forget_passwordforcust(Request $request)
         // Generating a 4-digit random number as OTP
         $otp = rand(1000, 9999);
 
-        // Storing or updating the OTP in huzaifa_employees_otp table
+        // Storing or updating the OTP in huzaifa_users_otp table
         DB::table('huzaifa_users_otp')->updateOrInsert(
             ['user_email' => $email],
             ['otp' => $otp]
         );
         
-        // Sending OTP to employee's email
+        // Sending OTP to customer's email
         $this->dispatchOtpEmail($email, $otp);
 
         return response()->json([
@@ -246,6 +246,7 @@ public function reset_passwordforcust(Request $request){
          'tax' => $request->tax,                // Taken from payload
          'total_price' => $request->total_price,// Taken from payload
          'status' => 'Pending',  // Default status
+         'payment_status' => 'Not Paid',  // Default status
      ]);
  
      // Return the response
@@ -423,6 +424,7 @@ $validator = Validator::make($request->all(), [
     'form_image' => 'required|string', // Base64 validation for form image
     'phone' => 'required|string',
     'user_type' => 'required|string'
+    
 ]);
 
 if ($validator->fails()) {
@@ -463,7 +465,8 @@ $employee = DB::table('huzaifa_employees')->insert([
     'profile' => $profileFilename, // Store profile image filename
     'id_image' => $idImageFilename, // Store ID image filename
     'form_image' => $formImageFilename, // Store form image filename
-    'user_type' => $request->user_type 
+    'user_type' => $request->user_type, 
+    'balance' => 0
 ]);
 
 // Return the response
@@ -1167,5 +1170,86 @@ public function show_job_rating(Request $request)
     ], 200);
 
  }
+ //////////////////////////////////////// Transaction Api //////////////////////////////////////////////////////
+ public function transferAmount(Request $request) {
+    // Validate the input
+    $validated = $request->validate([
+        'employee_id' => 'required',
+        'job_id' => 'required',
+        'customer_id' => 'required',
+    ]);
+
+    $employee_id = $request->input('employee_id');
+    $customer_id = $request->input('customer_id');
+    $job_id = $request->input('job_id');
+
+    // Verifying the employee_id from the huzaifa_employees table
+    $employeeExists = DB::table('huzaifa_employees')->where('id', $employee_id)->exists();
+    if (!$employeeExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid Employee ID'
+        ], 400);
+    }
+
+    // Verifying the job_id and the status as Completed from the huzaifa_create_jobs table
+    $job = DB::table('huzaifa_create_jobs')->where('id', $job_id)->first();
+    if (!$job || $job->status !== 'Completed') {
+        return response()->json([
+            'status' => 'error',
+            'message' => $job ? 'Job status is not Completed' : 'Invalid Job ID'
+        ], 400);
+    }
+
+    // Check if the job has already been paid
+    if ($job->payment_status === 'Paid') {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'This job has already been paid.'
+        ], 400);
+    }
+
+    // Verifying customer_id from the huzaifa_users table
+    $customer = DB::table('huzaifa_users')->where('id', $customer_id)->first();
+    if (!$customer) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid Customer ID'
+        ], 400);
+    }
+
+    // Retrieving the amount from huzaifa_create_jobs
+    $amount = $job->amount;
+    if ($customer->wallet_balance < $amount) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Insufficient funds in customer wallet'
+        ], 400);
+    }
+
+    // Performing the amount deduction from customer and adding to the employee
+    DB::transaction(function () use ($amount, $customer_id, $employee_id, $job_id) {
+        // Deduct the amount from customer wallet_balance
+        DB::table('huzaifa_users')
+            ->where('id', $customer_id)
+            ->decrement('wallet_balance', $amount);
+
+        // Add the amount to employee balance
+        DB::table('huzaifa_employees')
+            ->where('id', $employee_id)
+            ->increment('balance', $amount);
+
+        // Marking the job as paid by updating the payment_status column
+        DB::table('huzaifa_create_jobs')
+            ->where('id', $job_id)
+            ->update(['payment_status' => 'Paid']);
+    });
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Amount successfully transferred from customer to employee!'
+    ], 200);
+}
+
 
 }
