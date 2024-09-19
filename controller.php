@@ -528,7 +528,88 @@ public function show_completed_jobs(Request $request) {
         'jobs' => $jobs
     ], 200);
 }
+//////////////////////////////    Change Password for Customer /////////////////////////////////////////////////////////
+public function change_customer_password(Request $request)
+{
+    // Validate the incoming request
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|int',
+        'old_password' => 'required',
+        'new_password' => 'required',
+    ]);
 
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors(),
+        ], 400);
+    }
+
+    // Get the user based on the id from huzaifa_users table
+    $user = DB::table('huzaifa_users')->where('id', $request->id)->first();
+
+    if (!$user) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'User not found',
+        ], 404);
+    }
+
+    // Check if the old password matches the stored password (assuming password is hashed)
+    if (!Hash::check($request->old_password, $user->password)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Old password is incorrect',
+        ], 400);
+    }
+
+    // Hash the new password
+    $hashedNewPassword = Hash::make($request->new_password);
+
+    // Update the password in the database
+    DB::table('huzaifa_users')
+        ->where('id', $request->id)
+        ->update(['password' => $hashedNewPassword]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Password updated successfully',
+    ], 200);
+}
+
+///////////////////////////////////////////   Delete Customer Account    /////////////////////////////////////////
+public function delete_customer_account(Request $request)
+    {
+        // Validate the incoming request
+        $validator = Validator::make($request->all(), [
+            'customer_id' => 'required|int',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 400);
+        }
+
+        // Get the user based on the customer_id from huzaifa_users table
+        $user = DB::table('huzaifa_users')->where('id', $request->customer_id)->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Customer ID does not exist',
+            ], 400);
+        }
+
+        // Delete the user from the database
+        DB::table('huzaifa_users')->where('id', $request->customer_id)->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Account deleted successfully',
+        ], 200);
+    }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////          Employee Side     /////////////////////////////////////////////////
@@ -801,7 +882,7 @@ return response()->json([
             'total_price' => $job->total_price,
             'status' => 'Accepted',
         ]);
-    
+        
         // Retrieve the updated job details to include the updated status
         $updatedJob = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
     
@@ -1305,4 +1386,87 @@ public function show_job_rating(Request $request)
         'message' => 'Amount successfully transferred from customer to employee!'
     ], 200);
 }
+
+//////////////////////////////    Change Password for Employee /////////////////////////////////////////////////////////
+public function change_employee_password(Request $request)
+{
+    // Validate the incoming request
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|int',
+        'old_password' => 'required',
+        'new_password' => 'required',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors(),
+        ], 400);
+    }
+
+    // Get the user based on the id from huzaifa_employees table
+    $employee = DB::table('huzaifa_employees')->where('id', $request->id)->first();
+
+    if (!$employee) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Employee not found',
+        ], 404);
+    }
+
+    // Check if the old password matches the stored password (assuming password is hashed)
+    if (!Hash::check($request->old_password, $employee->password)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Old password is incorrect',
+        ], 400);
+    }
+
+    // Hash the new password
+    $hashedNewPassword = Hash::make($request->new_password);
+
+    // Update the password in the database
+    DB::table('huzaifa_users')
+        ->where('id', $request->id)
+        ->update(['password' => $hashedNewPassword]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Password updated successfully',
+    ], 200);
+}
+
+///////////////////////////////////////////   Delete Employee Account    /////////////////////////////////////////
+public function delete_employee_account(Request $request)
+    {
+        // Validate the incoming request
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|int',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 400);
+        }
+
+        // Get the user based on the customer_id from huzaifa_users table
+        $employee = DB::table('huzaifa_employees')->where('id', $request->employee_id)->first();
+
+        if (!$employee) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Employee ID does not exist',
+            ], 400);
+        }
+
+        // Delete the user from the database
+        DB::table('huzaifa_employees')->where('id', $request->employee_id)->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Account deleted successfully',
+        ], 200);
+    }
 }

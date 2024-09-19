@@ -34,6 +34,11 @@ Route::GET('show_customer_jobs', [Api2Controller::class, 'show_customer_jobs']);
 Route::GET('show_OnGoing_jobs', [Api2Controller::class, 'show_OnGoing_jobs']);
 Route::GET('show_completed_jobs', [Api2Controller::class, 'show_completed_jobs']);
 
+/////////////////////////////////  Change Password for Customer & delete account ///////////////////////////////////////////
+Route::PUT('change_customer_password', [Api2Controller::class, 'change_customer_password']);
+Route::POST('delete_customer_account', [Api2Controller::class, 'delete_customer_account']);
+
+
 /////////////////////////////////  Jobs | Employee Side /////////////////////////////////////////////////
 Route::GET('show_pending_jobs', [Api2Controller::class, 'show_pending_jobs']);
 
@@ -70,3 +75,8 @@ Route::GET('show_job_rating', [Api2Controller::class, 'show_job_rating']);
 
 //////////////////////////  Transaction ///////////////////////////////////////////////////
 Route::POST('transferamount', [Api2Controller::class, 'transferamount']);
+
+
+/////////////////////////////////  Change Password for Customer & delete account ///////////////////////////////////////////
+Route::PUT('change_employee_password', [Api2Controller::class, 'change_employee_password']);
+Route::POST('delete_employee_account', [Api2Controller::class, 'delete_employee_account']);
