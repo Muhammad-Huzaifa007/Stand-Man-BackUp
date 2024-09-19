@@ -1285,7 +1285,7 @@ public function show_job_rating(Request $request)
 
     // Getting Job ID from Request
     $jobId = $request->input('job_id');
-
+    
     // Check if the Job_id does not exist
     $existingjob = DB::table('huzaifa_job_ratings')->where('id', $jobId)->exists();
 
