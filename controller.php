@@ -1469,4 +1469,66 @@ public function delete_employee_account(Request $request)
             'message' => 'Account deleted successfully',
         ], 200);
     }
+/////////////////////////////////////  Calculate Amount for extra time  //////////////////////////////////////////////////
+    public function calculate_extratime_payment(Request $request)
+    {
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'job_id' => 'required|integer'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 401);
+    }
+
+    // Retrieve job details from huzaifa_create_jobs table
+    $job = DB::table('huzaifa_create_jobs')->where('id', $request->job_id)->first();
+
+    if (!$job) {
+        return response()->json(['status' => 'error', 'message' => 'Invalid job ID'], 400);
+    }
+
+    // Extract values from the job record
+    $previousAmount = $job->amount;
+    $startTime = strtotime($job->start_time);
+    $endTime = strtotime($job->end_time);
+    $currentTime = time(); // Get current device time
+    $extraMinutes = 0;
+    $extraAmount = 0;
+    $minuteRate = 0.35;
+
+    // Checking if extra time is needed
+    if ($currentTime > $endTime) {
+        $extraMinutes = ($currentTime - $endTime) / 60;
+        $extraAmount = $extraMinutes * $minuteRate; // Calculate extra amount
+        $bookedClosed = date('Y-m-d H:i', $currentTime); // Use current time for booked_closed if extra time exists
+    } else {
+        $bookedClosed = date('Y-m-d H:i', $endTime); // Use end_time if no extra time exists
+    }
+
+    // Calculate total amount
+    $totalAmount = $previousAmount + $extraAmount;
+
+    // Retrieve service charges and tax from the job
+    $serviceCharges = $job->service_charges;
+    $tax = $job->tax;
+
+    // Return response with details
+    return response()->json([
+        'status' => 'Success',
+        'message' => 'Payment Calculated Successfully!',
+        'data' => [ 
+        'total_amount' => $totalAmount,   // Total amount including extra charges
+        'previous_amount' => $previousAmount,
+        'extra_amount' => $extraAmount,
+        'service_charges' => $serviceCharges,
+        'tax' => $tax,
+        'booked_time' => date('Y-m-d H:i', $startTime) . ' - ' . date('Y-m-d H:i', $endTime),
+        'booked_closed' => $bookedClosed, // Updated booked_closed logic
+        'extra_time' => $extraMinutes > 0 ? round($extraMinutes, 2) . ' minutes' : 'No extra time',
+        ]
+    ], 200);
+}
+
+
 }
