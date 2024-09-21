@@ -39,6 +39,10 @@ Route::PUT('change_customer_password', [Api2Controller::class, 'change_customer_
 Route::POST('delete_customer_account', [Api2Controller::class, 'delete_customer_account']);
 
 
+/////////////////////////////////  Customer Wallet Balance /////////////////////////////////////////////////
+Route::GET('showCustomerWalletBalance', [Api2Controller::class, 'showCustomerWalletBalance']);
+
+
 /////////////////////////////////  Jobs | Employee Side /////////////////////////////////////////////////
 Route::GET('show_pending_jobs', [Api2Controller::class, 'show_pending_jobs']);
 
@@ -62,6 +66,10 @@ Route::POST('login_employees',[Api2Controller::class,'login_employees']);
 /////////////////////////// Password Reset for Employees ///////////////////////////////////////
 Route::POST('forget_passwordforemp', [Api2Controller::class, 'forget_passwordforemp']);
 Route::PUT('reset_passwordforemp', [Api2Controller::class, 'reset_passwordforemp']);
+
+
+/////////////////////////////////  Employee Wallet Balance /////////////////////////////////////////////////
+Route::GET('showemployeeWalletBalance', [Api2Controller::class, 'showemployeeWalletBalance']);
 
 
 /////////////////////////// Chat Connection and Message ///////////////////////////////////////

@@ -611,6 +611,37 @@ public function delete_customer_account(Request $request)
         ], 200);
     }
 
+/////////////////////////////////////     Customer wallet Balance details     ////////////////////////////////
+public function showCustomerWalletBalance(Request $request)
+{
+    // Validate customer_id
+    $validator = Validator::make($request->all(), [
+        'customer_id' => 'required|integer',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
+    }
+
+    // Retrieve the customer using customer_id from huzaifa_users table
+    $customer = DB::table('huzaifa_users')->where('id', $request->customer_id)->first();
+
+    if (!$customer) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Customer not found'
+        ], 404);
+    }
+
+    // Return wallet balance
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Wallet Balance Retrieved Successfully!',
+        'wallet_balance' => $customer->wallet_balance,
+    ], 200);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////          Employee Side     /////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1155,17 +1186,23 @@ public function completed_jobs(Request $request){
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Enabling Chat Connections /////////////////////////////////////////////////////
-    public function enablechat(Request $request)
+public function enablechat(Request $request)
 {
-    // Validating sender_id and receiver_id
+    // Validating sender_id, receiver_id, job_id, image, and message
     $request->validate([
         'sender_id' => 'required|integer',
         'receiver_id' => 'required|integer',
+        'job_id' => 'required|integer',
+        'image' => 'required|string', // Base64 validation
+        'message' => 'required|string',
     ]);
 
-    // Getting the sender_id and receiver_id from the request
+    // Getting the sender_id, receiver_id, job_id, image, and message from the request
     $sender_id = $request->input('sender_id');
     $receiver_id = $request->input('receiver_id');
+    $job_id = $request->input('job_id');
+    $encodedImage = $request->input('image');
+    $message = $request->input('message');
 
     // Checking if sender exists in huzaifa_users table
     $senderexists = DB::table('huzaifa_users')->where('id', $sender_id)->exists();
@@ -1173,27 +1210,72 @@ public function completed_jobs(Request $request){
     // Checking if receiver exists in huzaifa_employees table
     $receiverexists = DB::table('huzaifa_employees')->where('id', $receiver_id)->exists();
 
-    // If both sender and receiver exist
-    if ($senderexists && $receiverexists) {
-        // Insert sender_id and receiver_id into huzaifa_chat_connections table
+    // Checking if job_id exists in huzaifa_create_jobs table
+    $jobexists = DB::table('huzaifa_create_jobs')->where('id', $job_id)->exists();
+
+    // If sender, receiver, and job exist
+    if ($senderexists && $receiverexists && $jobexists) {
+        // Handling the Image (using the same logic as signup_customers)
+        $filename = $this->decodeImage_FromUrl_formsg($encodedImage);
+        
+        if (!$filename) {
+            return response()->json(['message' => 'Invalid image format'], 400);
+        }
+
+        // Insert data into huzaifa_chat_connections table
         DB::table('huzaifa_chat_connections')->insert([
             'sender_id' => $sender_id,
             'receiver_id' => $receiver_id,
+            'job_id' => $job_id,
+            'image' => $filename, // Store filename instead of base64
+            'message' => $message,
         ]);
 
         // Return success response
         return response()->json([
             'status' => 'success',
             'message' => 'Chat Enabled between Sender and Receiver',
+            'data' => [
+                'job_id' => $job_id,
+                'image' => $filename,
+                'message' => $message,
+            ],
         ], 200);
     } else {
-        // Return error response if sender or receiver not found
+        // Return error response if sender, receiver, or job not found
         return response()->json([
             'status' => 'error',
-            'message' => 'Sender or Receiver Id not found'
+            'message' => 'Sender, Receiver, or Job Id not found'
         ], 400);
     }
 }
+
+// Function to decode base64 image URL and save the image
+private function decodeImage_FromUrl_formsg($base64String)
+{
+    // Extract base64 data
+    $base64Data = $this->extractBase64Data_formsg($base64String);
+    
+    if (!$base64Data) {
+        return false;
+    }
+    
+    // Generate a unique filename (replace 'user_image_' with 'chat_image_')
+    $filename = 'chat_image_' . time() . '.png';
+    
+    // Save the image
+    Storage::disk('public')->put($filename, base64_decode($base64Data));
+    
+    return $filename;
+}
+
+// Function to extract base64 image data
+private function extractBase64Data_formsg($base64String)
+{
+    // Check if the string is in base64 format and remove the metadata part
+    return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
+}
+
 //////////////////////////////////////////    Job Ratings and Reveiws //////////////////////////////////////////////////
 public function job_rating(Request $request) {
     // Validate job_rating and job_review input
@@ -1470,8 +1552,8 @@ public function delete_employee_account(Request $request)
         ], 200);
     }
 /////////////////////////////////////  Calculate Amount for extra time  //////////////////////////////////////////////////
-    public function calculate_extratime_payment(Request $request)
-    {
+public function calculate_extratime_payment(Request $request)
+{
     // Validation
     $validator = Validator::make($request->all(), [
         'job_id' => 'required|integer'
@@ -1513,20 +1595,57 @@ public function delete_employee_account(Request $request)
     $serviceCharges = $job->service_charges;
     $tax = $job->tax;
 
+    // Update the huzaifa_create_jobs table with the calculated values
+    DB::table('huzaifa_create_jobs')->where('id', $job->id)->update([
+        'amount' => $previousAmount,  // Updating previous amount in amount field
+        'service_charges' => $serviceCharges,  // Update service charges
+        'tax' => $tax,  // Update tax
+        'total_price' => $totalAmount  // Update total amount
+    ]);
+
     // Return response with details
     return response()->json([
         'status' => 'Success',
         'message' => 'Payment Calculated Successfully!',
-        'data' => [ 
-        'total_amount' => $totalAmount,   // Total amount including extra charges
-        'previous_amount' => $previousAmount,
-        'extra_amount' => $extraAmount,
-        'service_charges' => $serviceCharges,
-        'tax' => $tax,
-        'booked_time' => date('Y-m-d H:i', $startTime) . ' - ' . date('Y-m-d H:i', $endTime),
-        'booked_closed' => $bookedClosed, // Updated booked_closed logic
-        'extra_time' => $extraMinutes > 0 ? round($extraMinutes, 2) . ' minutes' : 'No extra time',
+        'data' => [
+            'total_amount' => $totalAmount,   // Total amount including extra charges
+            'previous_amount' => $previousAmount,
+            'extra_amount' => $extraAmount,
+            'service_charges' => $serviceCharges,
+            'tax' => $tax,
+            'booked_time' => date('Y-m-d H:i', $startTime) . ' - ' . date('Y-m-d H:i', $endTime),
+            'booked_closed' => $bookedClosed, // Updated booked_closed logic
+            'extra_time' => $extraMinutes > 0 ? round($extraMinutes, 2) . ' minutes' : 'No extra time',
         ]
+    ], 200);
+}
+/////////////////////////////////////     Employee wallet Balance details     ////////////////////////////////
+public function showemployeeWalletBalance(Request $request)
+{
+    // Validate customer_id
+    $validator = Validator::make($request->all(), [
+        'employee_id' => 'required|integer',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 400);
+    }
+
+    // Retrieve the Employee using customer_id from huzaifa_users table
+    $employee = DB::table('huzaifa_employees')->where('id', $request->employee_id)->first();
+
+    if (!$employee) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Employee not found'
+        ], 400);
+    }
+
+    // Return wallet balance
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Wallet Balance Retrieved Successfully!',
+        'wallet_balance' => $employee->balance,
     ], 200);
 }
 
