@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Session;
 
 class Api2Controller extends Controller
 {
@@ -202,97 +203,98 @@ public function reset_passwordforcust(Request $request){
 }
  // //////////////////////////////////////    Create Jobs by Customer Api ////////////////////////////////////////
  public function create_jobs(Request $request)
- {
-     // Validation
-     $validator = Validator::make($request->all(), [
-         'customer_id' => 'required|int',
-         'image' => 'required|string', // Base64 validation
-         'name' => 'required|string',
-         'job_date' => 'required|string',
-         'start_time' => 'required|string',
-         'end_time' => 'required|string',
-         'special_instructions' => 'required|string',
-         'location' => 'required|string',
-         'amount' => 'required|numeric|min:21',  // Minimum amount should be 21
-         'service_charges' => 'required|numeric',
-         'tax' => 'required|numeric',
-         'total_price' => 'required|numeric',
-     ]);
+{
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'customer_id' => 'required|int',
+        'image' => 'required|string', // Base64 validation
+        'name' => 'required|string',
+        'job_date' => 'required|string',
+        'start_time' => 'required|string',
+        'end_time' => 'required|string',
+        'special_instructions' => 'required|string',
+        'location' => 'required|string',
+        'amount' => 'required|numeric|min:21',  // Minimum amount should be 21
+        'service_charges' => 'required|numeric',
+        'tax' => 'required|numeric',
+        'total_price' => 'required|numeric',
+    ]);
 
-     if ($validator->fails()) {
-         return response()->json(['errors' => $validator->errors()], 401);
-     }
- 
-     // Handling the Image
-     $encodedImage = $request->input('image');
-     $filename = $this->decodeBase64ImageForJob($encodedImage);
- 
-     if (!$filename) {
-         return response()->json(['message' => 'Invalid image format'], 400);
-     }
- 
-     // Inserting data into the database with default status 'pending'
-     $jobId = DB::table('huzaifa_create_jobs')->insertGetId([
-         'customer_id' => $request->customer_id,
-         'image' => $filename,
-         'name' => $request->name,
-         'job_date' => $request->job_date,
-         'start_time' => $request->start_time,
-         'end_time' => $request->end_time,
-         'special_instructions' => $request->special_instructions,
-         'location' => $request->location,
-         'amount' => $request->amount,          // Taken from payload
-         'service_charges' => $request->service_charges, // Taken from payload
-         'tax' => $request->tax,                // Taken from payload
-         'total_price' => $request->total_price,// Taken from payload
-         'status' => 'Pending',  // Default status
-         'payment_status' => 'Not Paid',  // Default status
-     ]);
- 
-     // Return the response
-     if ($jobId) {
-         // Retrieve the job details from the database
-         $job = DB::table('huzaifa_create_jobs')->where('id', $jobId)->first();
- 
-         return response()->json([
-             'status' => 'Success', 
-             'message' => 'Job Created Successfully!',
-             'data' => $job,
-         ], 200);
-     } else {
-         return response()->json([
-             'status' => 'Error',
-             'message' => 'Job could not be created' 
-         ], 400);
-     }
- }
- 
- // Function to decode base64 image for job creation and save it
-    private function decodeBase64ImageForJob($base64String)
-    {
-     // Extract base64 data
-     $base64Data = $this->getBase64ImageContent($base64String);
-     
-     if (!$base64Data) {
-         return false;
-     }
-     
-     // Generate a unique filename
-     $filename = 'job_image_' . time() . '.png';
-     
-     // Save the image
-     Storage::disk('public')->put($filename, base64_decode($base64Data));
-     
-     return $filename;
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 401);
     }
- 
-    // Renamed function to get base64 image content
-    private function getBase64ImageContent($base64String)
-    {
-     // Check if the string is in base64 format and remove the metadata part
-     return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
- }
- 
+
+    // Handling the Image
+    $encodedImage = $request->input('image');
+    $filename = $this->decodeBase64ImageForJob($encodedImage);
+
+    if (!$filename) {
+        return response()->json(['message' => 'Invalid image format'], 400);
+    }
+
+    // Inserting data into the database with default status 'pending'
+    $jobId = DB::table('huzaifa_create_jobs')->insertGetId([
+        'customer_id' => $request->customer_id,
+        'image' => $filename,
+        'name' => $request->name,
+        'job_date' => $request->job_date,
+        'start_time' => $request->start_time,
+        'end_time' => $request->end_time,
+        'special_instructions' => $request->special_instructions,
+        'location' => $request->location,
+        'amount' => $request->amount,
+        'service_charges' => $request->service_charges,
+        'tax' => $request->tax,
+        'total_price' => $request->total_price,
+        'status' => 'Pending',
+        'payment_status' => 'Not Paid',
+    ]);
+
+    // Return the response
+    if ($jobId) {
+        // Retrieve the job details from the database
+        $job = DB::table('huzaifa_create_jobs')->where('id', $jobId)->first();
+
+        return response()->json([
+            'status' => 'Success',
+            'message' => 'Job Created Successfully!',
+            'data' => $job,
+        ], 200);
+    } else {
+        return response()->json([
+            'status' => 'Error',
+            'message' => 'Job could not be created'
+        ], 400);
+    }
+}
+
+// Function to decode base64 image for job creation and save it in public/uploads folder
+private function decodeBase64ImageForJob($base64String)
+{
+    // Extract base64 data
+    $base64Data = $this->getBase64ImageContent($base64String);
+    
+    if (!$base64Data) {
+        return false;
+    }
+    
+    // Generate a unique filename
+    $filename = 'uploads/job_image_' . time() . '.png';
+    
+    // Save the image in the public/uploads directory
+    $filePath = public_path($filename);
+    file_put_contents($filePath, base64_decode($base64Data));
+    
+    return $filename;
+}
+
+// Function to extract base64 image content
+private function getBase64ImageContent($base64String)
+{
+    // Check if the string is in base64 format and remove the metadata part
+    return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
+}
+
  
     
     // //////////////////////////////////////    Job Estimated Payment Api /////////////////////////////////
@@ -1640,7 +1642,7 @@ public function showemployeeWalletBalance(Request $request)
             'message' => 'Employee not found'
         ], 400);
     }
-
+        
     // Return wallet balance
     return response()->json([
         'status' => 'success',
@@ -1648,6 +1650,184 @@ public function showemployeeWalletBalance(Request $request)
         'wallet_balance' => $employee->balance,
     ], 200);
 }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////    Dashboard Controllers   ////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+    public function login(Request $request)
+    {
+        // Validate the request data
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
+
+        // Retrieve the admin from the database
+        $admin = DB::table('huzaifa_admins')
+            ->where('email', $request->input('email'))
+            ->first();
+
+        // Check if the admin exists and the password matches
+        if ($admin && $admin->password === $request->input('password')) {
+            // Store the admin's information in the session
+            Session::put('admin_email', $admin->email);
+            return redirect('/dashboardd'); // Redirect to the dashboard
+        }
+
+        // If login fails, return back with an error message
+        return redirect()->back()->with('error', 'Invalid email or password.')->withInput();
+    }
+    
+    //////////////////////////////////  Logout ///////////////////////////////////////////////
+    public function logout()
+    {
+        // Destroy the session
+        Session::flush();
+
+        // Redirect to the login page
+        return redirect('/loginpage')->with('success', 'Logged out successfully.');
+    }
+    /////////////////////////////////  Dashboard Index ////////////////////////////////
+    public function index()
+    {
+        // Fetch total customers
+        $totalCustomers = DB::table('huzaifa_users')->count();
+
+        // Fetch total employees
+        $totalEmployees = DB::table('huzaifa_employees')->count();
+
+        // Fetch total jobs
+        $totalJobs = DB::table('huzaifa_create_jobs')->count();
+
+        // Fetch total started jobs (status 'On Going')
+        $startedJobs = DB::table('huzaifa_create_jobs')
+            ->where('status', 'On Going')
+            ->count();
+
+        // Fetch total completed jobs (status 'Completed')
+        $completedJobs = DB::table('huzaifa_create_jobs')
+            ->where('status', 'Completed')
+            ->count();
+
+        // Fetch total cancelled jobs (status 'Cancelled')
+        $cancelledJobs = DB::table('huzaifa_create_jobs')
+            ->where('status', 'Cancelled')
+            ->count();
+
+        // Pass the data to the view
+        return view('Huzaifa_dashboard.dashboard', [
+            'totalCustomers' => $totalCustomers, 
+            'totalEmployees' => $totalEmployees,
+            'totalJobs'=> $totalJobs,
+            'startedJobs'=> $startedJobs,
+            'completedJobs' => $completedJobs,
+            'cancelledJobs'=> $cancelledJobs     
+           ]);
+    }
+    //////////////////////////////////  Customers Dynamic data //////////////////////////
+    public function showCustomers()
+    {
+        // Fetch customers details from huzaifa_users table
+        $customers = DB::table('huzaifa_users')
+        ->select('id', 'first_name', 'last_name', 'email', 'wallet_balance')
+        ->get();
+        
+        // Pass the customers data to the view
+        return view('Huzaifa_dashboard.customers', compact('customers'));
+    }
+    
+    //////////////////////////////////  Employees Dynamic data //////////////////////////
+    public function showEmployees()
+    {
+    // Fetch employee details from huzaifa_employees table
+    $employees = DB::table('huzaifa_employees')
+        ->select('id', 'profile', 'full_name', 'phone', 'email')
+        ->get();
+
+    // Pass the employee data to the view
+    return view('Huzaifa_dashboard.employees', compact('employees'));
+    }
+
+    ///////////////////////////////// started jobs /////////////////////////////////////
+    public function startedjobs()
+    {
+        // Fetch started jobs where status is 'On Going'
+        $startedJobs = DB::table('huzaifa_create_jobs')
+            ->where('status', 'On Going')
+            ->get();
+
+        // Pass the data to the view
+        return view('Huzaifa_dashboard.started_jobs', compact('startedJobs'));
+    }
+
+    ///////////////////////////////// Completed jobs /////////////////////////////////////
+    public function completedjobs()
+    {
+        // Fetch started jobs where status is 'On Going'
+        $completedJobs = DB::table('huzaifa_create_jobs')
+            ->where('status', 'Completed')
+            ->get();
+
+        // Pass the data to the view
+        return view('Huzaifa_dashboard.completed_jobs', compact('completedJobs'));
+    }
+
+    ///////////////////////////////// Cancelled jobs /////////////////////////////////////
+    public function cancelledjobs()
+    {
+        // Fetch started jobs where status is 'On Going'
+        $cancelledJobs = DB::table('huzaifa_create_jobs')
+            ->where('status', 'Cancelled')
+            ->get();
+
+        // Pass the data to the view
+        return view('Huzaifa_dashboard.cancelled_job', compact('cancelledJobs'));
+    }
+
+    /////////////////////////// Delete customer Entry /////////////////////////////////////
+    public function delete_customer($id)
+    {
+        // Check if the customer exists in huzaifa_users
+        $customer = DB::table('huzaifa_users')->where('id', $id)->first();
+
+        if (!$customer) {
+            // Redirect back with error message if the customer is not found
+            return redirect()->back()->with('error', 'Customer not found!');
+        }
+
+        // Delete the customer from the huzaifa_users table
+        DB::table('huzaifa_users')->where('id', $id)->delete();
+
+        // Redirect back with success message
+        return redirect()->back()->with('success', 'Customer deleted successfully!');
+    }
+
+    /////////////////////// Update Customer Entry ////////////////////////////////////////
+    public function updateUser(Request $request, $id)
+    {
+        // Validate request
+        $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+        ]);
+    
+        // Check if the email already exists in the table
+        $existingUser = DB::table('huzaifa_users')->where('email', $request->email)->first();
+        if ($existingUser && $existingUser->id != $id) {
+            return redirect()->back()->with('error', 'Email already exists.');
+        }
+    
+        // Update the user
+        DB::table('huzaifa_users')->where('id', $id)->update([
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+        ]);
+    
+        // Flash the success message
+        return redirect()->back()->with('success', 'User updated successfully.');
+    }
+    
 }
