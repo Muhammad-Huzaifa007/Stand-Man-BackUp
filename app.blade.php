@@ -8,10 +8,13 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@100..900&display=swap');
+       @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
 
         body {
-            font-family: "Noto Sans", sans-serif;
+            font-family: "Manrope", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: <weight>;
+            font-style: normal;
             background-color: #f8f9fa;
             margin: 0;
         }
@@ -67,25 +70,27 @@
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
+            align-items: center; /* Center items vertically */
+            padding: 0 20px; /* Adjust padding as needed */
             background-color: #007bff;
             color: white;
             position: fixed; /* Fixed position for header */
             top: 0;
             left: 0;
             width: 100%; /* Full width for header */
+            height: 60px; /* Set a fixed height for the navbar */
             z-index: 100; /* Ensure header is above content */
         }
 
-        .header h4 {
-            margin: 0;
-            font-size: 24px;
+        .navbar-logo {
+            height: 60px; /* Make logo fill the navbar height */
+            width: auto; /* Maintain aspect ratio */
+            padding: 2px 5px; /* Optional: add some horizontal padding */
         }
 
-        .header img {
-            height: 40px;
-            width: auto;
+        .admin-logo {
+            height: 40px; /* Keep the height of the admin logo consistent */
+            width: auto; /* Maintain aspect ratio */
             cursor: pointer; /* Make the image clickable */
         }
 
@@ -133,9 +138,10 @@
 
     <!-- Header -->
     <div class="header">
-        <h4>StandMan Panel</h4>
+        <img src="{{ asset('images/huzaifa_logo2.png') }}" alt="Logo" class="navbar-logo">
+        <h2>StandMan Panel</h2>
         <!-- Admin image with modal trigger -->
-        <img src="{{ asset('images/huzaifa_admin.png') }}" alt="Admin Logo" data-toggle="modal" data-target="#adminModal">
+        <img src="{{ asset('images/huzaifa_admin.png') }}" alt="Admin Logo" data-toggle="modal" data-target="#adminModal" class="admin-logo">
     </div>
 
     <!-- Sidebar -->
@@ -175,28 +181,28 @@
     </div>
 
     <!-- Admin Modal -->
-<div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="adminModalLabel">Admin Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Email:</strong> {{ Session::get('admin_email') }}</p>
-            </div>
-            <div class="modal-footer">
-                <!-- Logout Form -->
-                <form action="{{ route('logout') }}" method="POST" style="display: inline;">
-                    @csrf <!-- CSRF Token -->
-                    <button type="submit" class="btn btn-danger">Logout</button>
-                </form>
+    <div class="modal fade" id="adminModal" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adminModalLabel">Admin Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Email:</strong> {{ Session::get('admin_email') }}</p>
+                </div>
+                <div class="modal-footer">
+                    <!-- Logout Form -->
+                    <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                        @csrf <!-- CSRF Token -->
+                        <button type="submit" class="btn btn-danger">Logout</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <!-- Bootstrap JS and dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>

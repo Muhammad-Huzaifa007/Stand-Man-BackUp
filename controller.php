@@ -1829,5 +1829,87 @@ public function showemployeeWalletBalance(Request $request)
         // Flash the success message
         return redirect()->back()->with('success', 'User updated successfully.');
     }
+
+    ///////////////////////////////////// Employee Delete Button /////////////////////////////////
+    public function delete_employee($id)
+    {
+    // Check if the employee exists in huzaifa_employees
+    $employee = DB::table('huzaifa_employees')->where('id', $id)->first();
+
+    if (!$employee) {
+        // Redirect back with error message if the employee is not found
+        return redirect()->back()->with('error', 'Employee not found!');
+    }
+
+    // Delete the employee from the huzaifa_employees table
+    DB::table('huzaifa_employees')->where('id', $id)->delete();
     
+    // Redirect back with success message
+    return redirect()->back()->with('success', 'Employee deleted successfully!');
+    }
+
+    ///////////////////////////////////// Employee Update Button /////////////////////////////////
+    public function updateEmployee(Request $request, $id)
+    {
+    // Validate request
+    $request->validate([
+        'full_name' => 'required|string|max:255',
+        'phone' => 'required|string|max:15',
+        'email' => 'required|email|max:255',
+    ]);
+
+    // Check if the email already exists in the table
+    $existingEmployee = DB::table('huzaifa_employees')->where('email', $request->email)->first();
+    if ($existingEmployee && $existingEmployee->id != $id) {
+        return redirect()->back()->with('error', 'Email already exists.');
+    }
+
+    // Update the employee
+    DB::table('huzaifa_employees')->where('id', $id)->update([
+        'full_name' => $request->full_name,
+        'phone' => $request->phone,
+        'email' => $request->email,
+    ]);
+
+    // Flash the success message
+    return redirect()->back()->with('success', 'Employee updated successfully.');
+    }
+
+    //////////////////////////////// Delete Job Button ////////////////////////////////
+    public function deleteJob($id)
+    {
+    // Delete the job
+    DB::table('huzaifa_create_jobs')->where('id', $id)->delete();
+
+    // Flash the success message
+    return redirect()->back()->with('success', 'Job deleted successfully.');
+    }
+
+    ////////////////////////////////// Update Job Button /////////////////////////////////
+    public function updateJob(Request $request, $id)
+{
+    // Validate request
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'job_date' => 'required|date',
+        'start_time' => 'required',
+        'end_time' => 'required',
+        'special_instructions' => 'nullable|string',
+        'location' => 'required|string',
+    ]);
+
+    // Update the job with the specified fields
+    DB::table('huzaifa_create_jobs')->where('id', $id)->update([
+        'name' => $request->name,
+        'job_date' => $request->job_date,
+        'start_time' => $request->start_time,
+        'end_time' => $request->end_time,
+        'special_instructions' => $request->special_instructions, // updated field name
+        'location' => $request->location,
+    ]);
+
+    // Flash the success message
+    return redirect()->back()->with('success', 'Job updated successfully.');
+    }
+
 }

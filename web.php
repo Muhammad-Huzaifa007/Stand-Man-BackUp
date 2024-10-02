@@ -1,3 +1,6 @@
+/////////////////////////////////   Huzaifa Dashboard /////////////////////////////////////////
+// Admin Routes
+
 Route::get('/loginpage', function () {
     return view('Huzaifa_dashboard.login');
 });
@@ -51,3 +54,14 @@ Route::delete('/customers/{id}', [Api2Controller::class, 'delete_customer'])->na
 /////// Customer Update button
 Route::put('/update-user/{id}', [Api2Controller::class, 'updateUser']);
 
+/////// Employee delete button
+Route::delete('/employees/{id}', [Api2Controller::class, 'delete_employee'])->name('employees.destroy');
+
+/////// Employee Update button
+Route::put('/update-employee/{id}', [Api2Controller::class, 'updateEmployee']);
+
+///////// Update Job Button
+Route::put('/update-job/{id}', [Api2Controller::class, 'updateJob']);
+
+///////// Delete Job Button
+Route::delete('/jobs/{id}', [Api2Controller::class, 'deleteJob'])->name('jobs.destroy');
