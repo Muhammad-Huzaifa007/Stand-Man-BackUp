@@ -81,11 +81,17 @@
             height: 60px; /* Set a fixed height for the navbar */
             z-index: 100; /* Ensure header is above content */
         }
+        .header div{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
         .navbar-logo {
             height: 60px; /* Make logo fill the navbar height */
             width: auto; /* Maintain aspect ratio */
             padding: 2px 5px; /* Optional: add some horizontal padding */
+            margin-bottom: 10px
         }
 
         .admin-logo {
@@ -138,8 +144,10 @@
 
     <!-- Header -->
     <div class="header">
-        <img src="{{ asset('images/huzaifa_logo2.png') }}" alt="Logo" class="navbar-logo">
-        <h2>StandMan Panel</h2>
+        <div>
+            <img src="{{ asset('images/huzaifa_logo2.png') }}" alt="Logo" class="navbar-logo">
+            <h2>StandMan</h2>
+        </div>
         <!-- Admin image with modal trigger -->
         <img src="{{ asset('images/huzaifa_admin.png') }}" alt="Admin Logo" data-toggle="modal" data-target="#adminModal" class="admin-logo">
     </div>
