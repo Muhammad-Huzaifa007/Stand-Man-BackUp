@@ -68,3 +68,12 @@ Route::delete('/jobs/{id}', [Api2Controller::class, 'deleteJob'])->name('jobs.de
 
 //////////// Admin Dynamic data
 Route::get('generalsettings', [Api2Controller::class, 'showAdminDetails'])->name('admin.settings');
+
+// Route to display the admin settings page
+Route::get('generalsettings', [Api2Controller::class, 'showAdminDetails2'])->name('admin.settings');
+
+// Route to update admin details (name, email, password)
+Route::post('admin/update/details', [Api2Controller::class, 'updateAdminDetails'])->name('admin.update.details');
+
+// Route to update admin image
+Route::post('admin/update/image', [Api2Controller::class, 'updateAdminImage'])->name('admin.update.image');

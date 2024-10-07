@@ -649,118 +649,127 @@ public function showCustomerWalletBalance(Request $request)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // ///////////////////////////  Employee Sign Up Api ///////////////////////////////////////////////////////////////
-public function signup_employee(Request $request)
-{
-// Validation
-$validator = Validator::make($request->all(), [
-    'full_name' => 'required|string',
-    'email' => 'required|email',
-    'password' => 'required|string',
-    'profile' => 'required|string', // Base64 validation for profile image
-    'id_image' => 'required|string', // Base64 validation for ID image
-    'form_image' => 'required|string', // Base64 validation for form image
-    'phone' => 'required|string',
-    'user_type' => 'required|string'
-    
-]);
+    public function signup_employee(Request $request)
+    {
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'full_name' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string',
+            'profile' => 'required|string', // Base64 validation for profile image
+            'id_image' => 'required|string', // Base64 validation for ID image
+            'form_image' => 'required|string', // Base64 validation for form image
+            'phone' => 'required|string',
+            'user_type' => 'required|string'
+        ]);
 
-if ($validator->fails()) {
-    return response()->json(['errors' => $validator->errors()], 400);
-}
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
 
-// Check if email already exists
-$emailExists = DB::table('huzaifa_employees')->where('email', $request->email)->exists();
+        // Check if email already exists
+        $emailExists = DB::table('huzaifa_employees')->where('email', $request->email)->exists();
 
-if ($emailExists) {
-    return response()->json(['message' => 'Email already exists'], 409); // 409 Conflict
-}
+        if ($emailExists) {
+            return response()->json(['message' => 'Email already exists'], 409); // 409 Conflict
+        }
 
-// Handling profile image
-$profileFilename = $this->decodeProfileImage($request->input('profile'));
-if (!$profileFilename) {
-    return response()->json(['message' => 'Invalid profile image format'], 400);
-}
+        // Handling profile image
+        $profileFilename = $this->decodeProfileImage($request->input('profile'));
+        if (!$profileFilename) {
+            return response()->json(['message' => 'Invalid profile image format'], 400);
+        }
 
-// Handling ID image
-$idImageFilename = $this->decodeIdImage($request->input('id_image'));
-if (!$idImageFilename) {
-    return response()->json(['message' => 'Invalid ID image format'], 400);
-}
+        // Handling ID image
+        $idImageFilename = $this->decodeIdImage($request->input('id_image'));
+        if (!$idImageFilename) {
+            return response()->json(['message' => 'Invalid ID image format'], 400);
+        }
 
-// Handling form image
-$formImageFilename = $this->decodeFormImage($request->input('form_image'));
-if (!$formImageFilename) {
-    return response()->json(['message' => 'Invalid form image format'], 400);
-}
+        // Handling form image
+        $formImageFilename = $this->decodeFormImage($request->input('form_image'));
+        if (!$formImageFilename) {
+            return response()->json(['message' => 'Invalid form image format'], 400);
+        }
 
-// Insert data into the database
-$employee = DB::table('huzaifa_employees')->insert([
-    'full_name' => $request->full_name,
-    'email' => $request->email,
-    'password' => Hash::make($request->password),
-    'phone' => $request->phone,
-    'profile' => $profileFilename, // Store profile image filename
-    'id_image' => $idImageFilename, // Store ID image filename
-    'form_image' => $formImageFilename, // Store form image filename
-    'user_type' => $request->user_type, 
-    'balance' => 0
-]);
+        // Insert data into the database
+        $employee = DB::table('huzaifa_employees')->insert([
+            'full_name' => $request->full_name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'phone' => $request->phone,
+            'profile' => $profileFilename, // Store profile image filename
+            'id_image' => $idImageFilename, // Store ID image filename
+            'form_image' => $formImageFilename, // Store form image filename
+            'user_type' => $request->user_type,
+            'balance' => 0
+        ]);
 
-// Return the response
-if ($employee) {
-    return response()->json([
-        'status' => 'Succeess',
-        'message' => 'Employee Created Successfully!', 
-    ], 200);
-} else {
-    return response()->json([
-        'status' => 'Error',
-        'message' => 'Employee Could not be Created ', 
-    ], 400);
-}
-}
+        // Return the response
+        if ($employee) {
+            return response()->json([
+                'status' => 'Success',
+                'message' => 'Employee Created Successfully!',
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 'Error',
+                'message' => 'Employee Could not be Created',
+            ], 400);
+        }
+    }
 
-// Function to decode base64 profile image and save it
-private function decodeProfileImage($base64String)
-{
-    return $this->saveBase64Image($base64String, 'profile_image');
-}
+    // Function to decode base64 profile image and save it
+    private function decodeProfileImage($base64String)
+    {
+        return $this->saveBase64Image($base64String, 'profile_image');
+    }
 
-// Function to decode base64 ID image and save it
-private function decodeIdImage($base64String)
-{
-    return $this->saveBase64Image($base64String, 'id_image');
-}
+    // Function to decode base64 ID image and save it
+    private function decodeIdImage($base64String)
+    {
+        return $this->saveBase64Image($base64String, 'id_image');
+    }
 
-// Function to decode base64 form image and save it
-private function decodeFormImage($base64String)
-{
-    return $this->saveBase64Image($base64String, 'form_image');
-}
+    // Function to decode base64 form image and save it
+    private function decodeFormImage($base64String)
+    {
+        return $this->saveBase64Image($base64String, 'form_image');
+    }
 
-// General function to save base64 image data
-private function saveBase64Image($base64String, $prefix)
-{
-$base64Data = $this->extractBase64empData($base64String);
+    // General function to save base64 image data in public/uploads
+    private function saveBase64Image($base64String, $prefix)
+    {
+        $base64Data = $this->extractBase64empData($base64String);
 
-if (!$base64Data) {
-    return false;
-}
+        if (!$base64Data) {
+            return false;
+        }
 
-// Generate a unique filename
-$filename = $prefix . '_' . time() . '.png';
+        // Generate a unique filename
+        $filename = $prefix . '_' . time() . '.png';
 
-// Save the image
-Storage::disk('public')->put($filename, base64_decode($base64Data));
+        // Ensure the public/uploads directory exists
+        $uploadPath = public_path('uploads');
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
 
-return $filename;
-}
+        // Save the image in public/uploads
+        $filePath = $uploadPath . '/' . $filename;
+        file_put_contents($filePath, base64_decode($base64Data));
 
-// Function to extract base64 image data
-private function extractBase64empData($base64String)
-{
-return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
-}
+        // Return the filename for storing in the database
+        return 'uploads/' . $filename;
+    }
+
+    // Function to extract base64 image data
+    private function extractBase64empData($base64String)
+    {
+        return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
+    }
+
+
 // ///////////////////////////  Employee Log In Api ///////////////////////////////////////////
 public function login_employees(Request $request){
 // Custom Validation
@@ -1912,4 +1921,86 @@ public function showemployeeWalletBalance(Request $request)
     return redirect()->back()->with('success', 'Job updated successfully.');
     }
 
+    //////////////////////////////////  Fetching Dynamic data of Admin  ///////////////////////////////////
+    public function showAdminDetails()
+    {
+        // Fetch the first admin details from huzaifa_admins table
+        $admin = DB::table('huzaifa_admins')->first();
+
+        // Pass the admin details to the view
+        return view('Huzaifa_dashboard.general_settings', compact('admin'));
+    }
+
+    ////////////////////////////////// Edit Admin Details /////////////////////////////////////////////
+    public function showAdminDetails2()
+    {
+    // Fetch the first admin details from huzaifa_admins table
+    $admin = DB::table('huzaifa_admins')->first();
+
+    // Pass the admin details to the view
+    return view('Huzaifa_dashboard.general_settings', compact('admin'));
+    }
+
+    public function updateAdminDetails(Request $request)
+    {
+    // Validation
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string',
+        'email' => 'required|email',
+        'old_password' => 'required|string',
+        'password' => 'nullable|string|confirmed',
+    ]);
+
+    if ($validator->fails()) {
+        return redirect()->back()->withErrors($validator)->withInput();
+    }
+
+    // Fetch the admin's current details
+    $admin = DB::table('huzaifa_admins')->first();
+
+    // Check if the old password matches
+    if ($request->old_password !== $admin->password) {
+        return redirect()->back()->withErrors(['old_password' => 'Old password is incorrect.']);
+    }
+
+    // Prepare the data for updating
+    $data = [
+        'name' => $request->name,
+        'email' => $request->email,
+    ];
+
+    // Check if a new password was provided
+    if ($request->filled('password')) {
+        $data['password'] = $request->password; // Store plain text password
+    }
+
+    // Update the admin details in the database
+    DB::table('huzaifa_admins')->where('id', $admin->id)->update($data);
+
+    return redirect()->back()->with('success', 'Admin details updated successfully!');
+    }
+
+    public function updateAdminImage(Request $request)
+    {
+    // Validate the image
+    $request->validate([
+        'image' => 'required|image|mimes:jpeg,png,jpg,gif'
+    ]);
+
+    // Fetch the admin details
+    $admin = DB::table('huzaifa_admins')->first();
+
+    // Handle the image upload
+    if ($request->hasFile('image')) {
+        // Store the image in the public/images folder
+        $imageName = time() . '.' . $request->file('image')->getClientOriginalExtension();
+        $request->file('image')->move(public_path('images'), $imageName);
+        
+        // Update the image path in the database
+        DB::table('huzaifa_admins')->where('id', $admin->id)->update(['image' => 'images/' . $imageName]);
+    }
+
+    return redirect()->back()->with('success', 'Profile image updated successfully!');
+    }
+   
 }
