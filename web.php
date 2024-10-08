@@ -25,6 +25,9 @@ Route::get('/cancelledjobs', function () {
 /////////// Login Authentication 
 Route::POST('/login', [Api2Controller::class, 'login'])->name('admin.login');
 
+////////////// Admin Image in Navbar
+Route::get('/fetch-admin-image', [Api2Controller::class, 'getAdminImage'])->name('fetch.admin.image');
+
 /////////// Dashboard dynamic data
 Route::GET('/dashboardd', [Api2Controller::class, 'index']);
 

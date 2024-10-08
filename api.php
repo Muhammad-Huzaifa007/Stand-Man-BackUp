@@ -73,6 +73,7 @@ Route::GET('showemployeeWalletBalance', [Api2Controller::class, 'showemployeeWal
 
 
 /////////////////////////// Chat Connection and Message ///////////////////////////////////////
+Route::POST('/start_chat', [Api2Controller::class, 'createChat']);
 Route::POST('enablechat', [Api2Controller::class, 'enablechat']);
 
 

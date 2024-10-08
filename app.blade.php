@@ -95,9 +95,9 @@
         }
 
         .admin-logo {
-            height: 40px; /* Keep the height of the admin logo consistent */
-            width: auto; /* Maintain aspect ratio */
             cursor: pointer; /* Make the image clickable */
+            /* padding: 1px;
+            border: 2px solid #ddd; */
         }
 
         .footer {
@@ -141,7 +141,10 @@
     </style>
 </head>
 <body>
-
+    @php
+        $admin = DB::table('huzaifa_admins')->where('id',1)->first();
+       
+    @endphp
     <!-- Header -->
     <div class="header">
         <div>
@@ -149,7 +152,7 @@
             <h2>StandMan</h2>
         </div>
         <!-- Admin image with modal trigger -->
-        <img src="{{ asset('images/huzaifa_admin.png') }}" alt="Admin Logo" data-toggle="modal" data-target="#adminModal" class="admin-logo">
+        <img src="{{ asset($admin->image) }}"  alt="Admin Logo" data-toggle="modal" data-target="#adminModal" class="rounded-circle admin-logo" width="40" height="40" >
     </div>
 
     <!-- Sidebar -->
@@ -170,8 +173,8 @@
 
         <a href="#"><i class="fas fa-cog"></i> Settings</a>
         <div class="submenu">
-            <a href="/generalsettings"><i class="fas fa-wrench"></i> General Settings</a>
-            <a href="#"><i class="fas fa-lock"></i> Privacy Settings</a>
+            <a href="/generalsettings"><i class="fas fa-wrench"></i> Admin Settings</a>
+            {{-- <a href="#"><i class="fas fa-lock"></i> Privacy Settings</a> --}}
         </div>
 
         <!-- Static report route -->

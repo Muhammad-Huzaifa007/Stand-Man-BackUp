@@ -910,6 +910,7 @@ return response()->json([
         // Insert the job data into the huzaifa_accepted_jobs table
         DB::table('huzaifa_accepted_jobs')->insert([
             'job_id' => $job->id,
+            'customer_id' => $job->customer_id,
             'employee_id' => $request->employee_id,
             'image' => $job->image,
             'name' => $job->name,
@@ -961,7 +962,7 @@ public function show_employee_jobs(Request $request)
         return response()->json([
             'status' => 'error',
             'message' => 'Employee ID does not exist.',
-        ], 404); 
+        ], 400); 
     }
 
     // Proceed if the customer_id exists
@@ -1021,6 +1022,7 @@ public function show_employee_jobs(Request $request)
           // Insert the job data into the huzaifa_started_jobs table
           DB::table('huzaifa_started_jobs')->insert([
               'job_id' => $job->id,
+              'customer_id' => $job->customer_id,
               'employee_id' => $request->employee_id,
               'image' => $job->image,
               'name' => $job->name,
@@ -1047,8 +1049,8 @@ public function show_employee_jobs(Request $request)
           ], 200);
       }
     // /////////////////////////  Displaying Started/On GOingJobs by Employee Id Api ///////////////////
-public function show_started_jobs(Request $request)
-{
+    public function show_started_jobs(Request $request)
+    {
     // Validation
     $validator = Validator::make($request->all(), [
         'employee_id' => 'required|integer', 
@@ -1197,8 +1199,74 @@ public function completed_jobs(Request $request){
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Enabling Chat Connections /////////////////////////////////////////////////////
-public function enablechat(Request $request)
-{
+
+////////////////////////////  Starting the Chat between two ids ////////////////////////////////////////////////
+    public function createChat(Request $request)
+    {
+    // Validate the request payload for both sender_id and receiver_id
+    $validatedData = $request->validate([
+        'sender_id' => 'required|integer',
+        'receiver_id' => 'required|integer',
+    ]);
+
+    // Check if the sender_id exists in the huzaifa_employees table
+    $employeeExists = DB::table('huzaifa_employees')
+        ->where('id', $validatedData['sender_id'])
+        ->exists();
+
+    // Check if the receiver_id exists in the huzaifa_users table
+    $userExists = DB::table('huzaifa_users')
+        ->where('id', $validatedData['receiver_id'])
+        ->exists();
+
+    // If the employee doesn't exist, return an error
+    if (!$employeeExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Sender (Employee) ID not found in huzaifa_employees table.',
+        ], 400);
+    }
+
+    // If the user doesn't exist, return an error
+    if (!$userExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Receiver (User) ID not found in huzaifa_users table.',
+        ], 400);
+    }
+
+    // Check if either sender_id or receiver_id already exists in the huzaifa_create_chats table
+    $chatExists = DB::table('huzaifa_create_chats')
+        ->where('sender_id', $validatedData['sender_id'])
+        ->orWhere('receiver_id', $validatedData['receiver_id'])
+        ->exists();
+
+    // If a chat already exists with either sender_id or receiver_id, return an error
+    if ($chatExists) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Chat already exists between the specified sender and receiver.',
+        ], 400);
+    }
+
+    // If both IDs exist and no chat exists, insert the chat into the huzaifa_create_chats table
+    DB::table('huzaifa_create_chats')->insert([
+        'sender_id' => $validatedData['sender_id'],
+        'receiver_id' => $validatedData['receiver_id'],
+        'status' => 'Chat enabled', // Default status
+        'created_at' => now(), // Current timestamp for created_at
+        'updated_at' => now(), // Current timestamp for updated_at
+    ]);
+
+    // Return success response
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Chat created successfully.',
+    ], 200);
+    }
+
+    public function enablechat(Request $request)
+    {
     // Validating sender_id, receiver_id, job_id, image, and message
     $request->validate([
         'sender_id' => 'required|integer',
@@ -1680,6 +1748,7 @@ public function showemployeeWalletBalance(Request $request)
         // Check if the admin exists and the password matches
         if ($admin && $admin->password === $request->input('password')) {
             // Store the admin's information in the session
+            Session::put('admin_id', $admin->id);
             Session::put('admin_email', $admin->email);
             return redirect('/dashboardd'); // Redirect to the dashboard
         }
@@ -1697,6 +1766,17 @@ public function showemployeeWalletBalance(Request $request)
         // Redirect to the login page
         return redirect('/loginpage')->with('success', 'Logged out successfully.');
     }
+
+    //////////////////////////////   Admin Dynamic Image from the Table //////////////////////////
+    public function getAdminImage()
+    {
+        // Fetch admin image from the database
+        $admin = huzaifa_admins::first(); // Fetch the first admin, adjust this as needed
+        
+        // Return the view with the image path
+        return view('Huzaifa_dashboard.app', compact('admin'));
+    }
+
     /////////////////////////////////  Dashboard Index ////////////////////////////////
     public function index()
     {
