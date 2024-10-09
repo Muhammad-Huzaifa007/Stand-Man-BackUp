@@ -36,10 +36,10 @@ class Api2Controller extends Controller
         if ($emailExists) {
             return response()->json(['message' => 'Email already exists'], 409); // 409 Conflict
         }
-
+    
         // Handling the Image
         $encodedImage = $request->input('image');
-        $filename = $this->decodeImageFromUrl($encodedImage);
+        $filename = $this->decodeCustomerImage($encodedImage);
         
         if (!$filename) {
             return response()->json(['message' => 'Invalid image format'], 400);
@@ -60,19 +60,19 @@ class Api2Controller extends Controller
         // Return the response
         if ($user) {
             return response()->json([
-                'status' => 'Succeess',
+                'status' => 'Success',
                 'message' => 'User Created Successfully!',
             ], 200);
         } else {
             return response()->json([
-            'message' => 'User could not be created',
-             'status' => 'Error'
+                'message' => 'User could not be created',
+                'status' => 'Error'
             ], 400);
         }
     }
     
-    // Function to decode base64 image URL and save the image
-    private function decodeImageFromUrl($base64String)
+    // Function to decode base64 image URL and save the image as customer_image
+    private function decodeCustomerImage($base64String)
     {
         // Extract base64 data
         $base64Data = $this->extractBase64Data($base64String);
@@ -81,21 +81,29 @@ class Api2Controller extends Controller
             return false;
         }
         
-        // Generate a unique filename
-        $filename = 'user_image_' . time() . '.png';
+        // Use 'customer_image' as the filename without prefix
+        $filename = 'customer_image.png'; // Fixed name for customer image
         
-        // Save the image
-        Storage::disk('public')->put($filename, base64_decode($base64Data));
-        
-        return $filename;
+        // Ensure the public/uploads directory exists
+        $uploadPath = public_path('uploads');
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+    
+        // Save the image in public/uploads
+        $filePath = $uploadPath . '/' . $filename;
+        file_put_contents($filePath, base64_decode($base64Data));
+    
+        // Return the filename for storing in the database
+        return 'uploads/' . $filename; // Return path to store in DB
     }
     
     // Function to extract base64 image data
     private function extractBase64Data($base64String)
     {
-        // Check if the string is in base64 format and remove the metadata part
         return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
     }
+    
 
     // //////////////////////////////////////  Customer Login Api //////////////////////////////
     public function login_customers(Request $request){
@@ -105,7 +113,7 @@ class Api2Controller extends Controller
         'status' => 'error',
         'message' => 'All Fields are Required' 
     ], 200);
-}
+    }
 
     // Retrieving the User by Email
     $user = DB::table('huzaifa_users')->where('email', $request->email)->first();
@@ -124,9 +132,9 @@ class Api2Controller extends Controller
         ], 400);
     }
     
-}
+    }
 // //////////////////////////////////////  Forget Password for Customers Api /////////////////////////////
-public function forget_passwordforcust(Request $request)
+    public function forget_passwordforcust(Request $request)
     {
         // Storing the given email in $email variable
         $email = $request->input('email');
@@ -174,7 +182,7 @@ public function forget_passwordforcust(Request $request)
     }
 
 // //////////////////////////////////////  Update Password for Customer Api /////////////////////////////////////
-public function reset_passwordforcust(Request $request){
+    public function reset_passwordforcust(Request $request){
     $email = $request->input('email');
     $newpassword = $request->input('password');
 
@@ -200,10 +208,10 @@ public function reset_passwordforcust(Request $request){
         'status' => 'success',
         'message' => 'Password Updated Successfully'
     ], 200);
-}
+    }
  // //////////////////////////////////////    Create Jobs by Customer Api ////////////////////////////////////////
- public function create_jobs(Request $request)
-{
+    public function create_jobs(Request $request)
+    {
     // Validation
     $validator = Validator::make($request->all(), [
         'customer_id' => 'required|int',
@@ -266,11 +274,11 @@ public function reset_passwordforcust(Request $request){
             'message' => 'Job could not be created'
         ], 400);
     }
-}
+    }
 
 // Function to decode base64 image for job creation and save it in public/uploads folder
-private function decodeBase64ImageForJob($base64String)
-{
+    private function decodeBase64ImageForJob($base64String)
+    {
     // Extract base64 data
     $base64Data = $this->getBase64ImageContent($base64String);
     
@@ -286,20 +294,20 @@ private function decodeBase64ImageForJob($base64String)
     file_put_contents($filePath, base64_decode($base64Data));
     
     return $filename;
-}
+    }
 
 // Function to extract base64 image content
-private function getBase64ImageContent($base64String)
-{
+    private function getBase64ImageContent($base64String)
+    {
     // Check if the string is in base64 format and remove the metadata part
     return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
-}
+    }
 
  
     
     // //////////////////////////////////////    Job Estimated Payment Api /////////////////////////////////
     public function calculate_payment(Request $request)
-{
+    {
     // Validation
     $validator = Validator::make($request->all(), [
         'start_time' => 'required|string',
@@ -335,10 +343,10 @@ private function getBase64ImageContent($base64String)
         'calculated_tax' => $calculatedTax,
         'calculated_total_price' => $calculatedTotalPrice
     ], 200);
-}
+    }
 // /////////////////////////  Displaying Created Jobs by Customer Id Api ///////////////////
-public function show_customer_jobs(Request $request)
-{
+    public function show_customer_jobs(Request $request)
+    {
     // Validation
     $validator = Validator::make($request->all(), [
         'customer_id' => 'required|integer', 
@@ -371,9 +379,9 @@ public function show_customer_jobs(Request $request)
         'status' => 'success',
         'data' => $createdJobs,
     ], 200);
-}
+    }
  // //////////////////////////////////////    Show On Going Jobs Api | Customer side  //////////////////////////
- public function show_OnGoing_jobs(Request $request){
+    public function show_OnGoing_jobs(Request $request){
     // Get the customer_id from the request
     $cid = $request->input('customer_id');
 
@@ -407,9 +415,9 @@ public function show_customer_jobs(Request $request)
         'status' => 'success',
         'jobs' => $jobs
     ], 200);
-}
+    }
    // //////////////////////////////////////  Edit Accepted Jobs Api //////////////////////////////
-   public function edit_jobs(Request $request) {
+    public function edit_jobs(Request $request) {
     $request->validate([
         'job_id' => 'required|int',  // Validate job_id
         'customer_id' => 'required|int',  // Validate customer_id
@@ -472,7 +480,7 @@ public function show_customer_jobs(Request $request)
         'message' => 'Job updated successfully!',
         'Updated Job' => $updatedJob
     ], 200);
-}
+    }
 // ///////////////////////////  Delete Job Api ///////////////////////////////////////////
     public function delete_job(Request $request){
     $request->validate([
@@ -495,9 +503,9 @@ public function show_customer_jobs(Request $request)
     'message' => 'Job deleted!',
     ],200);
 
-}
+    }
 //////////////////////////////////// Show Complted Jobs /////////////////////////////////////
-public function show_completed_jobs(Request $request) {  
+    public function show_completed_jobs(Request $request) {  
     $cid = trim($request->input('customer_id'));
 
     // Check if the customer exists in the huzaifa_create_jobs table
@@ -529,10 +537,10 @@ public function show_completed_jobs(Request $request) {
         'status' => 'success',
         'jobs' => $jobs
     ], 200);
-}
+    }
 //////////////////////////////    Change Password for Customer /////////////////////////////////////////////////////////
-public function change_customer_password(Request $request)
-{
+    public function change_customer_password(Request $request)
+    {
     // Validate the incoming request
     $validator = Validator::make($request->all(), [
         'id' => 'required|int',
@@ -577,10 +585,10 @@ public function change_customer_password(Request $request)
         'status' => 'success',
         'message' => 'Password updated successfully',
     ], 200);
-}
+    }
 
 ///////////////////////////////////////////   Delete Customer Account    /////////////////////////////////////////
-public function delete_customer_account(Request $request)
+    public function delete_customer_account(Request $request)
     {
         // Validate the incoming request
         $validator = Validator::make($request->all(), [
@@ -614,8 +622,8 @@ public function delete_customer_account(Request $request)
     }
 
 /////////////////////////////////////     Customer wallet Balance details     ////////////////////////////////
-public function showCustomerWalletBalance(Request $request)
-{
+    public function showCustomerWalletBalance(Request $request)
+    {
     // Validate customer_id
     $validator = Validator::make($request->all(), [
         'customer_id' => 'required|integer',
@@ -641,7 +649,7 @@ public function showCustomerWalletBalance(Request $request)
         'message' => 'Wallet Balance Retrieved Successfully!',
         'wallet_balance' => $customer->wallet_balance,
     ], 200);
-}
+    }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -771,102 +779,102 @@ public function showCustomerWalletBalance(Request $request)
 
 
 // ///////////////////////////  Employee Log In Api ///////////////////////////////////////////
-public function login_employees(Request $request){
-// Custom Validation
-if(empty($request->email) || empty($request->password)){
+    public function login_employees(Request $request){
+    // Custom Validation
+    if(empty($request->email) || empty($request->password)){
     return response()->json([
-'status' => 'error',
-'message' => 'All Fields are Required' 
-], 200);
-}
+    'status' => 'error',
+    'message' => 'All Fields are Required' 
+    ], 200);
+    }
 
 // Retrieving the User by Email
-$user = DB::table('huzaifa_employees')->where('email', $request->email)->first();
+    $user = DB::table('huzaifa_employees')->where('email', $request->email)->first();
 
 // Checking If the user exists and the password is correct
-if($user && Hash::check($request->password, $user->password)){
-return response()->json([
+    if($user && Hash::check($request->password, $user->password)){
+    return response()->json([
     'status' => 'success',
     'Message' => 'User Logged in Successfully! ',
     'data' => $user
-], 200);
-}else{
-return response()->json([
+    ], 200);
+    }else{
+    return response()->json([
     'status' => 'error',
     'message' => 'Email and Password does not Match!'
-], 400);
-}
-}
+    ], 400);
+    }
+    }
 // ////////////////////////////////////// Employee Forget Password Api /////////////////////////////
-public function forget_passwordforemp(Request $request){
-// Storing the given email in $email variable
-$email = $request->input('email');
+    public function forget_passwordforemp(Request $request){
+    // Storing the given email in $email variable
+    $email = $request->input('email');
 
 // Checking If the user exists
-$user = DB::table('huzaifa_employees')->where('email', $email)->first();
+    $user = DB::table('huzaifa_employees')->where('email', $email)->first();
 
-if(!$user){
+    if(!$user){
     return response()->json([
         'status' => 'Error',
         'message' => 'User does not exists'
     ], 400);
-}
+    }
 
 // Generating a 4-digit random number as OTP
-$otp = rand(1000, 9999);
-DB::table('huzaifa_employees_otp')->updateOrInsert(
+    $otp = rand(1000, 9999);
+    DB::table('huzaifa_employees_otp')->updateOrInsert(
     ['employee_email' => $email],
     ['otp' => $otp]
-);
+    );
 
 // Sending OTP to User's email
-$this->sendOtpEmailforemp($email, $otp);
-return response()->json([
+    $this->sendOtpEmailforemp($email, $otp);
+    return response()->json([
     'status' => 'Success',
     'message' => 'OTP has been sent to your Email',
     'OTP' => $otp,
-]);
-}
+    ]);
+    }
 
-private function sendOtpEmailforemp($email, $otp)
-{
-$subject = "Your Password Reset OTP";
-$message = "Your OTP for resetting your password is: $otp";
+    private function sendOtpEmailforemp($email, $otp)
+    {
+    $subject = "Your Password Reset OTP";
+    $message = "Your OTP for resetting your password is: $otp";
 
-Mail::raw($message, function ($mail) use ($email, $subject) {
+    Mail::raw($message, function ($mail) use ($email, $subject) {
     $mail->to($email)
         ->subject($subject);
-});
-}  
+    });
+    }    
 
 // //////////////////////////////////////  Employee Update Password Api ///////////////////////////////////////
-public function reset_passwordforemp(Request $request){
-$email = $request->input('email');
-$newpassword = $request->input('password');
+    public function reset_passwordforemp(Request $request){
+    $email = $request->input('email');
+    $newpassword = $request->input('password');
 
 // Checking if the user exists in the database table
-$user = DB::table('huzaifa_employees')->where('email', $email)->first();
+    $user = DB::table('huzaifa_employees')->where('email', $email)->first();
 
-if (!$user) {
+    if (!$user) {
     return response()->json([
         'status' => 'error',
         'message' => 'User does not exist'
     ], 400);
-}
+    }
 
 // Hashing the new password
-$hashpassword = Hash::make($newpassword);
+    $hashpassword = Hash::make($newpassword);
 
 // Update the password in the database
-DB::table('huzaifa_employees')
+    DB::table('huzaifa_employees')
     ->where('email', $email)
     ->update(['password' => $hashpassword]);
 
-return response()->json([
+    return response()->json([
     'status' => 'success',
     'message' => 'Password Updated Successfully'
-], 200);
-}
+    ], 200);
+    }
     // //////////////////////////////////////    Show Pending Jobs Api | Employee side -> My Jobs //////////////////////////
     public function show_pending_jobs(){
         $jobs = DB::table('huzaifa_create_jobs')->where('status', 'Pending')->get();
@@ -938,8 +946,8 @@ return response()->json([
     }
     
 // /////////////////////////  Displaying Accepted Jobs by Employee Id Api ///////////////////
-public function show_employee_jobs(Request $request)
-{
+    public function show_employee_jobs(Request $request)
+    {
     // Validation
     $validator = Validator::make($request->all(), [
         'employee_id' => 'required|integer', 
@@ -972,7 +980,7 @@ public function show_employee_jobs(Request $request)
         'status' => 'success',
         'data' => $acceptedJobs,
     ], 200);
-}
+    }
 
       // //////////////////////////////////////    Started/On going Jobs Api //////////////////////////////
       public function started_jobs(Request $request)
@@ -1141,7 +1149,7 @@ public function show_employee_jobs(Request $request)
 
     }
 // ///////////////////////////  Completed Job Api ///////////////////////////////////////////
-public function completed_jobs(Request $request){
+    public function completed_jobs(Request $request){
     $validator = Validator::make($request->all(), [
         'employee_id' => 'required',
         'job_id' => 'required'
@@ -1223,7 +1231,7 @@ public function completed_jobs(Request $request){
     if (!$employeeExists) {
         return response()->json([
             'status' => 'error',
-            'message' => 'Sender (Employee) ID not found in huzaifa_employees table.',
+            'message' => 'Sender (Employee) ID not found.',
         ], 400);
     }
 
@@ -1231,7 +1239,7 @@ public function completed_jobs(Request $request){
     if (!$userExists) {
         return response()->json([
             'status' => 'error',
-            'message' => 'Receiver (User) ID not found in huzaifa_users table.',
+            'message' => 'Receiver (User) ID not found.',
         ], 400);
     }
 
@@ -1244,9 +1252,9 @@ public function completed_jobs(Request $request){
     // If a chat already exists with either sender_id or receiver_id, return an error
     if ($chatExists) {
         return response()->json([
-            'status' => 'error',
-            'message' => 'Chat already exists between the specified sender and receiver.',
-        ], 400);
+            'status' => 'success',
+            'message' => 'Chat has already been started.',
+        ], 200);
     }
 
     // If both IDs exist and no chat exists, insert the chat into the huzaifa_create_chats table
@@ -1265,23 +1273,24 @@ public function completed_jobs(Request $request){
     ], 200);
     }
 
-    public function enablechat(Request $request)
+////////////////////////////////////  Sending Message/Image in Chat //////////////////////////////////// 
+    public function send_message(Request $request)
     {
-    // Validating sender_id, receiver_id, job_id, image, and message
+    // Validating sender_id, receiver_id, job_id, image, message, and message_type
     $request->validate([
         'sender_id' => 'required|integer',
         'receiver_id' => 'required|integer',
-        'job_id' => 'required|integer',
-        'image' => 'required|string', // Base64 validation
-        'message' => 'required|string',
+        'image' => 'nullable|string', // Base64 validation (nullable for text messages)
+        'message' => 'nullable|string', // Nullable for attachment messages
+        'message_type' => 'required|string|in:text,attachment' // Ensure it can only be 'text' or 'attachment'
     ]);
 
-    // Getting the sender_id, receiver_id, job_id, image, and message from the request
+    // Getting the sender_id, receiver_id, image, message, and message_type from the request
     $sender_id = $request->input('sender_id');
     $receiver_id = $request->input('receiver_id');
-    $job_id = $request->input('job_id');
     $encodedImage = $request->input('image');
     $message = $request->input('message');
+    $message_type = $request->input('message_type');
 
     // Checking if sender exists in huzaifa_users table
     $senderexists = DB::table('huzaifa_users')->where('id', $sender_id)->exists();
@@ -1289,36 +1298,45 @@ public function completed_jobs(Request $request){
     // Checking if receiver exists in huzaifa_employees table
     $receiverexists = DB::table('huzaifa_employees')->where('id', $receiver_id)->exists();
 
-    // Checking if job_id exists in huzaifa_create_jobs table
-    $jobexists = DB::table('huzaifa_create_jobs')->where('id', $job_id)->exists();
-
-    // If sender, receiver, and job exist
-    if ($senderexists && $receiverexists && $jobexists) {
-        // Handling the Image (using the same logic as signup_customers)
-        $filename = $this->decodeImage_FromUrl_formsg($encodedImage);
-        
-        if (!$filename) {
-            return response()->json(['message' => 'Invalid image format'], 400);
-        }
-
-        // Insert data into huzaifa_chat_connections table
-        DB::table('huzaifa_chat_connections')->insert([
+    // If sender, receiverexist
+    if ($senderexists && $receiverexists) {
+        // Prepare data for insertion based on message type
+        $data = [
             'sender_id' => $sender_id,
             'receiver_id' => $receiver_id,
-            'job_id' => $job_id,
-            'image' => $filename, // Store filename instead of base64
-            'message' => $message,
-        ]);
+            'status' => 'Un Read', // By default message is unread
+            'created_at' => now(), // Current timestamp for created_at
+            'updated_at' => now(),
+            'message_type' => $message_type // Insert message_type
+        ];
 
-        // Return success response
+        if ($message_type === 'text') {
+            // If the message is text, include the message and set the image to null
+            $data['message'] = $message;
+            $data['image'] = null; // No image for text messages
+        } elseif ($message_type === 'attachment') {
+            // If the message is an attachment, include the image and set the message to null
+            $filename = $this->saveQRCodeImage($encodedImage, 'qrcode_chat_image');
+
+            if (!$filename) {
+                return response()->json(['message' => 'Invalid image format'], 400);
+            }
+
+            $data['image'] = $filename; // Store filename instead of base64
+            $data['message'] = null; // No message for attachment messages
+        }
+
+        // Insert data into huzaifa_messages table and get the inserted ID
+        $insertedId = DB::table('huzaifa_messages')->insertGetId($data);
+
+        // Retrieve the inserted entry by its ID
+        $insertedChat = DB::table('huzaifa_messages')->where('id', $insertedId)->first();
+
+        // Return success response with the inserted chat entry details
         return response()->json([
             'status' => 'success',
             'message' => 'Chat Enabled between Sender and Receiver',
-            'data' => [
-                'job_id' => $job_id,
-                'image' => $filename,
-                'message' => $message,
-            ],
+            'data' => $insertedChat // Include only the inserted chat entry details
         ], 200);
     } else {
         // Return error response if sender, receiver, or job not found
@@ -1327,36 +1345,90 @@ public function completed_jobs(Request $request){
             'message' => 'Sender, Receiver, or Job Id not found'
         ], 400);
     }
-}
+    }
 
-// Function to decode base64 image URL and save the image
-private function decodeImage_FromUrl_formsg($base64String)
-{
-    // Extract base64 data
-    $base64Data = $this->extractBase64Data_formsg($base64String);
-    
+// General function to save base64 QR code image data in public/uploads
+    private function saveQRCodeImage($base64String, $prefix)
+    {
+    $base64Data = $this->extractBase64QRCodeData($base64String);
+
     if (!$base64Data) {
         return false;
     }
-    
-    // Generate a unique filename (replace 'user_image_' with 'chat_image_')
-    $filename = 'chat_image_' . time() . '.png';
-    
-    // Save the image
-    Storage::disk('public')->put($filename, base64_decode($base64Data));
-    
-    return $filename;
-}
 
-// Function to extract base64 image data
-private function extractBase64Data_formsg($base64String)
-{
-    // Check if the string is in base64 format and remove the metadata part
+    // Generate a unique filename
+    $filename = $prefix . '_' . time() . '.png';
+
+    // Ensure the public/uploads directory exists
+    $uploadPath = public_path('uploads');
+    if (!file_exists($uploadPath)) {
+        mkdir($uploadPath, 0777, true);
+    }
+
+    // Save the image in public/uploads
+    $filePath = $uploadPath . '/' . $filename;
+    file_put_contents($filePath, base64_decode($base64Data));
+
+    // Return the filename for storing in the database
+    return 'uploads/' . $filename;
+    }
+
+// Function to extract base64 QR code image data
+    private function extractBase64QRCodeData($base64String)
+    {
     return preg_replace('/^data:image\/\w+;base64,/', '', $base64String);
-}
+    }
+
+//////////////////////////////////////  Get/Fetch Messages //////////////////////////////////////////////////////////
+    public function fetch_messages(Request $request)
+    {
+    // Validate sender_id and receiver_id in the request payload
+    $request->validate([
+        'sender_id' => 'required|integer',
+        'receiver_id' => 'required|integer',
+    ]);
+
+    // Get sender_id and receiver_id from request
+    $sender_id = $request->input('sender_id');
+    $receiver_id = $request->input('receiver_id');
+
+    // Verify if any message exists with these sender_id and receiver_id
+    $messageExists = DB::table('huzaifa_messages')
+        ->where('sender_id', $sender_id)
+        ->where('receiver_id', $receiver_id)
+        ->exists();
+
+    if ($messageExists) {
+        // Update the status of matching messages to 'Read'
+        DB::table('huzaifa_messages')
+            ->where('sender_id', $sender_id)
+            ->where('receiver_id', $receiver_id)
+            ->update(['status' => 'Read', 'updated_at' => now()]);
+
+        // Fetch all updated messages
+        $messages = DB::table('huzaifa_messages')
+            ->where('sender_id', $sender_id)
+            ->where('receiver_id', $receiver_id)
+            ->get();
+
+        // Return the updated messages
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Messages fetched and marked as Read!',
+            'data' => $messages // Return the updated messages
+        ], 200);
+    } else {
+        // If no messages are found, return an error response
+        return response()->json([
+            'status' => 'error',
+            'message' => 'No messages found between the sender and receiver'
+        ], 400);
+    }
+    }
+
 
 //////////////////////////////////////////    Job Ratings and Reveiws //////////////////////////////////////////////////
-public function job_rating(Request $request) {
+    public function job_rating(Request $request) {
     // Validate job_rating and job_review input
     $validated = $request->validate([
         'customer_id' => 'required',                  
@@ -1428,11 +1500,11 @@ public function job_rating(Request $request) {
         'message' => 'Job rating and review submitted successfully.',
         'data' => $insertedRating
     ], 200);
-}
+    }
 
 //////////////////////////////////////// Show Job Rating details by job_id ////////////////////////////////////
-public function show_job_rating(Request $request)
- {
+    public function show_job_rating(Request $request)
+    {
     // Validation
     $validator = Validator::make($request->all(), [
         'job_id' => 'required|integer', 
@@ -1466,9 +1538,9 @@ public function show_job_rating(Request $request)
         'data' => $createdJobs,
     ], 200);
 
- }
+    }
  //////////////////////////////////////// Transaction Api //////////////////////////////////////////////////////
- public function transferAmount(Request $request) {
+    public function transferAmount(Request $request) {
     // Validate the input
     $validated = $request->validate([
         'employee_id' => 'required',
@@ -1497,7 +1569,7 @@ public function show_job_rating(Request $request)
             'message' => $job ? 'Job status is not Completed' : 'Invalid Job ID'
         ], 400);
     }
-
+      
     // Check if the job has already been paid
     if ($job->payment_status === 'Paid') {
         return response()->json([
@@ -1546,11 +1618,11 @@ public function show_job_rating(Request $request)
         'status' => 'success',
         'message' => 'Amount successfully transferred from customer to employee!'
     ], 200);
-}
+    }
 
 //////////////////////////////    Change Password for Employee /////////////////////////////////////////////////////////
-public function change_employee_password(Request $request)
-{
+    public function change_employee_password(Request $request)
+    {
     // Validate the incoming request
     $validator = Validator::make($request->all(), [
         'id' => 'required|int',

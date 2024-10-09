@@ -74,7 +74,8 @@ Route::GET('showemployeeWalletBalance', [Api2Controller::class, 'showemployeeWal
 
 /////////////////////////// Chat Connection and Message ///////////////////////////////////////
 Route::POST('/start_chat', [Api2Controller::class, 'createChat']);
-Route::POST('enablechat', [Api2Controller::class, 'enablechat']);
+Route::POST('send_message', [Api2Controller::class, 'send_message']);
+Route::POST('fetch_messages', [Api2Controller::class, 'fetch_messages']);
 
 
 //////////////////////////  Job Rating and Reviews ////////////////////////////////////////
